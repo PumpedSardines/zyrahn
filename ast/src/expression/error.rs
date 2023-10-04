@@ -1,5 +1,3 @@
-use crate::node;
-
 #[derive(Debug)]
 pub enum ErrorType {
     UnexpectedCloseParen,
@@ -59,6 +57,7 @@ pub struct Error {
 impl std::error::Error for Error {}
 
 impl Error {
+    #[allow(dead_code)]
     pub fn new(
         error_type: ErrorType,
         cl_start: usize,
