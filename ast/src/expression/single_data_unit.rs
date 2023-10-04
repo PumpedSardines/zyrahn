@@ -77,6 +77,9 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                         lexer::TokenType::SquareOpen => {
                             return parse_array_access(e.clone(), &tokens[1..]);
                         }
+                        lexer::TokenType::ParenOpen => {
+                            return parse_function_call(e.clone(), &tokens[1..]);
+                        }
                         _ => unimplemented!(),
                     }
                 }
@@ -369,7 +372,7 @@ fn parse_array_access(
 ///
 /// Assumes that first token is .
 ///
-/// If there are more tokens after the property access, then the function will call `all` recurisvely again
+/// If there are more tokens after the property access, then the function will call `all` recessively again
 ///
 /// # Example
 /// ```
@@ -435,6 +438,108 @@ fn parse_property_access(
             &tokens[1],
         ))
     }
+}
+
+fn parse_function_call(
+    expression: node::expression::All,
+    tokens: &[ExpressionToken],
+) -> Result<node::expression::All, error::Error> {
+    if tokens.len() == 0 {
+        panic!("Cannot parse empty expression");
+    }
+
+    match &tokens[0] {
+        ExpressionToken::Token(lexer::Token {
+            token_type: lexer::TokenType::ParenOpen,
+            ..
+        }) => {}
+        _ => panic!("First token must be a ("),
+    }
+
+    let mut curly_count = 0;
+    let mut square_count = 0;
+    let mut paren_count = 1;
+
+    let mut start = 1;
+    let mut end = tokens.len();
+    let mut args = vec![];
+
+    for i in 1..tokens.len() {
+        if let ExpressionToken::Token(t) = &tokens[i] {
+            match &t.token_type {
+                lexer::TokenType::ParenOpen => paren_count += 1,
+                lexer::TokenType::ParenClose => {
+                    paren_count -= 1;
+
+                    if curly_count != 0 || paren_count != 0 {
+                        return Err(error::Error::from_cl_ln(
+                            error::ErrorType::UnexpectedCloseParen,
+                            t,
+                        ));
+                    }
+
+                    if paren_count == 0 {
+                        end = i;
+                        break;
+                    }
+                }
+                lexer::TokenType::CurlyOpen => curly_count += 1,
+                lexer::TokenType::CurlyClose => curly_count -= 1,
+                lexer::TokenType::SquareOpen => square_count += 1,
+                lexer::TokenType::SquareClose => square_count -= 1,
+                lexer::TokenType::Comma => {
+                    if paren_count != 1 || curly_count != 0 || square_count != 0 {
+                        continue;
+                    }
+
+                    let exp_tokens = &tokens[start..i];
+
+                    if exp_tokens.len() == 0 {
+                        return Err(error::Error::from_cl_ln(
+                            error::ErrorType::EmptyExpression,
+                            &cl_ln::combine(&tokens[i - 1..=i]),
+                        ));
+                    }
+
+                    let expression = exp::gen(exp_tokens)?;
+                    args.push(expression);
+                    start = i + 1;
+                }
+
+                _ => {}
+            }
+        }
+    }
+
+    if paren_count != 0 || curly_count != 0 || square_count != 0 {
+        panic!("Parenthesis not closed, should be handled by the loop above");
+    }
+
+    let last_arg_tokens = &tokens[start..end];
+    if last_arg_tokens.len() != 0 {
+        args.push(exp::gen(last_arg_tokens)?);
+    }
+
+    let all_tokens = &[
+        &[ExpressionToken::Expression(expression.clone())],
+        &tokens[..=end],
+    ]
+    .concat();
+
+    let expression = All::SingleDataUnit {
+        value: SingleDataUnit::FunctionCall {
+            function: Box::new(expression.clone()),
+            arguments: args,
+            cl_ln: cl_ln::combine(all_tokens),
+        },
+        cl_ln: cl_ln::combine(all_tokens),
+    };
+
+    return all(&[
+        &[ExpressionToken::Expression(expression)],
+        &tokens[end + 1..],
+    ]
+    .concat());
 }
 
 /// Parses an identifier
