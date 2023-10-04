@@ -9,10 +9,9 @@ edition = "2021"
 members = [
   "lexer",
   "ast",
-  "cl_ln"
+  "helpers/cl_ln",
 ]
 
 [dependencies]
 lexer = { path = "lexer" }
 ast = { path = "ast" }
-cl_ln = { path = "cl_ln" }
