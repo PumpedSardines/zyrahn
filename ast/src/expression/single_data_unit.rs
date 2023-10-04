@@ -91,7 +91,7 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                         }
                         lexer::TokenType::CurlyOpen => {
                             // TODO: Implement struct init
-                            unimplemented!();
+                            unimplemented!("struct initialization");
                         }
                         _ => {
                             return Err(error::Error::from_cl_ln(
@@ -118,7 +118,7 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
             }
             lexer::TokenType::SquareOpen => {
                 // TODO: Implement array
-                unimplemented!();
+                unimplemented!("array initialization");
             }
             lexer::TokenType::Identifier(_) => {
                 return parse_identifier(tokens);
