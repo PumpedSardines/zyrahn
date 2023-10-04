@@ -89,128 +89,19 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                         lexer::TokenType::ParenOpen => {
                             return parse_function_call(e.clone(), &tokens[1..]);
                         }
-                        _ => unimplemented!(),
+                        lexer::TokenType::CurlyOpen => {
+                            // TODO: Implement struct init
+                            unimplemented!();
+                        }
+                        _ => {
+                            return Err(error::Error::from_cl_ln(
+                                error::ErrorType::UnexpectedToken(t.token_type.clone()),
+                                t,
+                            ));
+                        }
                     }
                 }
             }
-            //             lexer::TokenType::CurlyOpen => {
-            //                 if tokens.len() == 2 {
-            //                     return Err(Error::EvaluateExpression);
-            //                 }
-            //
-            //                 let mut curly_count = 1;
-            //                 let mut square_count = 0;
-            //                 let mut paren_count = 0;
-            //
-            //                 for i in 2..tokens.len() {
-            //                     if let ExpressionToken::Token(t) = &tokens[i] {
-            //                         match &t.token_type {
-            //                             lexer::TokenType::ParenOpen => paren_count += 1,
-            //                             lexer::TokenType::ParenClose => paren_count -= 1,
-            //                             lexer::TokenType::CurlyOpen => curly_count += 1,
-            //                             lexer::TokenType::SquareOpen => square_count += 1,
-            //                             lexer::TokenType::SquareClose => square_count -= 1,
-            //                             lexer::TokenType::CurlyClose => {
-            //                                 if curly_count == 0 {
-            //                                     if square_count != 0 || paren_count != 0 {
-            //                                         return Err(Error::EvaluateExpression);
-            //                                     }
-            //
-            //                                     let expression = All::SingleDataUnit(
-            //                                         SingleDataUnit::ArrayAccess {
-            //                                             array: Box::new(e.clone()),
-            //                                             index: Box::new(exp::gen(&tokens[2..i])?),
-            //                                         },
-            //                                     );
-            //
-            //                                     return all(&[
-            //                                         &[ExpressionToken::Expression(expression)],
-            //                                         &tokens[i + 1..],
-            //                                     ]
-            //                                     .concat());
-            //                                 }
-            //                                 curly_count -= 1;
-            //                             }
-            //                             _ => {}
-            //                         }
-            //                     }
-            //                 }
-            //
-            //                 return Err(Error::EvaluateExpression);
-            //             }
-            //             lexer::TokenType::ParenOpen => {
-            //                 if tokens.len() == 2 {
-            //                     return Err(Error::EvaluateExpression);
-            //                 }
-            //
-            //                 let mut curly_count = 0;
-            //                 let mut square_count = 0;
-            //                 let mut paren_count = 1;
-            //
-            //                 let mut start = 2;
-            //                 let mut end = tokens.len();
-            //                 let mut args = vec![];
-            //
-            //                 for i in 2..tokens.len() {
-            //                     if let ExpressionToken::Token(t) = &tokens[i] {
-            //                         match &t.token_type {
-            //                             lexer::TokenType::ParenOpen => paren_count += 1,
-            //                             lexer::TokenType::ParenClose => {
-            //                                 paren_count -= 1;
-            //
-            //                                 if paren_count == 0 {
-            //                                     end = i;
-            //                                     break;
-            //                                 }
-            //                             }
-            //                             lexer::TokenType::CurlyOpen => curly_count += 1,
-            //                             lexer::TokenType::CurlyClose => curly_count -= 1,
-            //                             lexer::TokenType::SquareOpen => square_count += 1,
-            //                             lexer::TokenType::SquareClose => square_count -= 1,
-            //                             lexer::TokenType::Comma => {
-            //                                 if paren_count != 1
-            //                                     || curly_count != 0
-            //                                     || square_count != 0
-            //                                 {
-            //                                     continue;
-            //                                 }
-            //
-            //                                 let expression = exp::gen(&tokens[start..i])?;
-            //                                 args.push(expression);
-            //                                 start = i + 1;
-            //                             }
-            //
-            //                             _ => {}
-            //                         }
-            //                     }
-            //                 }
-            //
-            //                 if paren_count != 0 || curly_count != 0 || square_count != 0 {
-            //                     return Err(Error::EvaluateExpression);
-            //                 }
-            //
-            //                 args.push(exp::gen(&tokens[start..end])?);
-            //
-            //                 let expression = All::SingleDataUnit(SingleDataUnit::FunctionCall {
-            //                     function: Box::new(e.clone()),
-            //                     arguments: args,
-            //                 });
-            //
-            //                 return all(&[
-            //                     &[ExpressionToken::Expression(expression)],
-            //                     &tokens[end + 1..],
-            //                 ]
-            //                 .concat());
-            //             }
-            //             _ => {
-            //                 return Err(Error::EvaluateExpression);
-            //             }
-            //         }
-            //     } else {
-            //         panic!("Cannot parse expression");
-            //     }
-            // }
-            unimplemented!()
         }
         ExpressionToken::Token(t) => match &t.token_type {
             lexer::TokenType::FloatLiteral(f) => {
@@ -225,60 +116,10 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
             lexer::TokenType::BooleanLiteral(b) => {
                 literal!(Literal::Boolean, t, *b);
             }
-            // lexer::TokenType::SquareOpen => {
-            //     let mut curly_count = 0;
-            //     let mut square_count = 1;
-            //     let mut paren_count = 0;
-            //
-            //     let mut start = 1;
-            //     let mut end = tokens.len();
-            //     let mut args = vec![];
-            //
-            //     for i in 1..tokens.len() {
-            //         if let ExpressionToken::Token(t) = &tokens[i] {
-            //             match &t.token_type {
-            //                 lexer::TokenType::ParenOpen => paren_count += 1,
-            //                 lexer::TokenType::ParenClose => paren_count -= 1,
-            //                 lexer::TokenType::CurlyOpen => curly_count += 1,
-            //                 lexer::TokenType::CurlyClose => curly_count -= 1,
-            //                 lexer::TokenType::SquareOpen => square_count += 1,
-            //                 lexer::TokenType::SquareClose => {
-            //                     square_count -= 1;
-            //
-            //                     if square_count == 0 {
-            //                         end = i;
-            //                         break;
-            //                     }
-            //                 }
-            //                 lexer::TokenType::Comma => {
-            //                     if paren_count != 0 || curly_count != 0 || square_count != 1 {
-            //                         continue;
-            //                     }
-            //
-            //                     let expression = exp::gen(&tokens[start..i])?;
-            //                     args.push(expression);
-            //                     start = i + 1;
-            //                 }
-            //
-            //                 _ => {}
-            //             }
-            //         }
-            //     }
-            //
-            //     if paren_count != 0 || curly_count != 0 || square_count != 0 {
-            //         return Err(Error::EvaluateExpression);
-            //     }
-            //
-            //     args.push(exp::gen(&tokens[start..end])?);
-            //
-            //     let expression = All::SingleDataUnit(SingleDataUnit::Array { values: args });
-            //
-            //     return all(&[
-            //         &[ExpressionToken::Expression(expression)],
-            //         &tokens[end + 1..],
-            //     ]
-            //     .concat());
-            // }
+            lexer::TokenType::SquareOpen => {
+                // TODO: Implement array
+                unimplemented!();
+            }
             lexer::TokenType::Identifier(_) => {
                 return parse_identifier(tokens);
             }
@@ -290,6 +131,8 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
             }
         },
     };
+
+    panic!("Should never get here");
 }
 
 fn parse_array_access(
