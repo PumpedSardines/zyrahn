@@ -1,16 +1,6 @@
+mod error;
 mod token;
-
 pub use token::*;
-
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("Unknown symbol: {0}")]
-    UnknownSymbol(String),
-    #[error("Invalid number")]
-    InvalidNumber,
-    #[error("Non terminated string")]
-    NonTerminatedString,
-}
 
 const SYMBOLS: &[&'static str] = &[
     "+", "-", "*", "/", "(", ")", "[", "]", "{", "}", "->", ";", ":", "::", ",", ".", "=", "+=",
@@ -51,7 +41,7 @@ impl Eval {
     }
 }
 
-pub fn tokenize(code: &str) -> Result<Vec<Token>, Error> {
+pub fn tokenize(code: &str) -> Result<Vec<Token>, error::Error> {
     let mut tokens = vec![];
 
     let lines = code.split('\n');
@@ -172,6 +162,15 @@ pub fn tokenize(code: &str) -> Result<Vec<Token>, Error> {
 
                         cur_eval = None;
                     }
+                    None => {
+                        return Err(error::Error::new(
+                            error::ErrorType::UnexpectedSymbol(c.to_string()),
+                            ln + 1,
+                            cl + 1,
+                            ln + 1,
+                            cl + 1,
+                        ));
+                    }
                     _ => {
                         if Eval::from_char(c) != cur_eval {
                             cur_eval = Eval::from_char(c);
@@ -182,6 +181,19 @@ pub fn tokenize(code: &str) -> Result<Vec<Token>, Error> {
                     }
                 }
             }
+        }
+
+        if cur_eval == Some(Eval::String) {
+            let ln = ln + 1;
+            let cl_start = cl_start + 1;
+
+            return Err(error::Error::new(
+                error::ErrorType::NonTerminatedString,
+                ln,
+                cl_start,
+                ln,
+                line.len(),
+            ));
         }
 
         if let Some(e) = cur_eval {
@@ -198,7 +210,7 @@ fn parse_token(
     ln: usize,
     cl_start: usize,
     cl_end: usize,
-) -> Result<Token, Error> {
+) -> Result<Token, error::Error> {
     let token_type = match eval {
         Eval::Word => match word {
             "fnc" => TokenType::Function,
@@ -221,7 +233,17 @@ fn parse_token(
         },
         Eval::Symbol => {
             if !SYMBOLS.iter().any(|s| *s == word) {
-                return Err(Error::UnknownSymbol(word.to_string()));
+                let ln = ln + 1;
+                let cl_start = cl_start + 1;
+                let cl_end = cl_end + 1;
+
+                return Err(error::Error::new(
+                    error::ErrorType::UnexpectedSymbol(word.to_string()),
+                    ln,
+                    cl_start,
+                    ln,
+                    cl_end,
+                ));
             }
 
             match word {
@@ -264,7 +286,17 @@ fn parse_token(
             } else if let Ok(num) = word.parse::<f64>() {
                 TokenType::FloatLiteral(num)
             } else {
-                return Err(Error::InvalidNumber);
+                let ln = ln + 1;
+                let cl_start = cl_start + 1;
+                let cl_end = cl_end + 1;
+
+                return Err(error::Error::new(
+                    error::ErrorType::InvalidNumber(word.to_string()),
+                    ln,
+                    cl_start,
+                    ln,
+                    cl_end,
+                ));
             }
         }
         Eval::String => TokenType::StringLiteral(word.to_string()),
