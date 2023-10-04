@@ -45,22 +45,22 @@ macro_rules! node_macro {
     };
 }
 
-pub fn cl_ln_from_token(token: &lexer::Token) -> ClLn {
-    (token.ln_start, token.cl_start, token.ln_end, token.cl_end)
-}
-
-pub fn cl_ln_from_many_token(tokens: &[lexer::Token]) -> ClLn {
-    cl_ln_from_many_cl_ln(&tokens.iter().map(cl_ln_from_token).collect::<Vec<ClLn>>())
-}
-
-pub fn cl_ln_from_many_cl_ln(cl_ln: &[ClLn]) -> ClLn {
-    let min_cl = cl_ln.iter().map(|t| t.1).min().unwrap();
-    let max_cl = cl_ln.iter().map(|t| t.3).max().unwrap();
-    let min_ln = cl_ln.iter().map(|t| t.0).min().unwrap();
-    let max_ln = cl_ln.iter().map(|t| t.2).max().unwrap();
-
-    (min_ln, min_cl, max_ln, max_cl)
-}
+// pub fn cl_ln_from_token(token: &lexer::Token) -> ClLn {
+//     (token.ln_start, token.cl_start, token.ln_end, token.cl_end)
+// }
+//
+// pub fn cl_ln_from_many_token(tokens: &[lexer::Token]) -> ClLn {
+//     cl_ln_from_many_cl_ln(&tokens.iter().map(cl_ln_from_token).collect::<Vec<ClLn>>())
+// }
+//
+// pub fn cl_ln_from_many_cl_ln(cl_ln: &[ClLn]) -> ClLn {
+//     let min_cl = cl_ln.iter().map(|t| t.1).min().unwrap();
+//     let max_cl = cl_ln.iter().map(|t| t.3).max().unwrap();
+//     let min_ln = cl_ln.iter().map(|t| t.0).min().unwrap();
+//     let max_ln = cl_ln.iter().map(|t| t.2).max().unwrap();
+//
+//     (min_ln, min_cl, max_ln, max_cl)
+// }
 
 pub mod expression {
     use std::collections::HashMap;

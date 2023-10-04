@@ -1,9 +1,9 @@
 use super::error;
 use super::exp;
 use super::ExpressionToken;
-use super::{cl_ln_from_expression_token, cl_ln_from_many_expression_tokens};
 use crate::node;
 use crate::node::expression::*;
+use cl_ln::ClLn;
 
 // Parses all single data units. This is the smallest unit of an expression. For example literals,
 // function calls, property access, etc.
@@ -20,7 +20,7 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                     let value = &tokens[1..];
                     let value = all(value)?;
 
-                    let cl_ln = cl_ln_from_many_expression_tokens(&tokens);
+                    let cl_ln = cl_ln::combine(&tokens);
 
                     return Ok(All::BooleanLogic {
                         value: BooleanLogic::Not {
@@ -34,7 +34,7 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                     let value = &tokens[1..];
                     let value = all(value)?;
 
-                    let cl_ln = cl_ln_from_many_expression_tokens(&tokens);
+                    let cl_ln = cl_ln::combine(&tokens);
 
                     return Ok(All::Arithmetic {
                         value: Arithmetic::Neg {
@@ -51,7 +51,7 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
 
     macro_rules! literal {
         ($scope:ident::$type:ident, $t:expr, $v:expr) => {
-            let cl_ln = node::cl_ln_from_token($t);
+            let cl_ln = $t.cl_ln();
 
             let l = $scope::$type { value: $v, cl_ln };
 
@@ -271,7 +271,7 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                 return parse_identifier(tokens);
             }
             _ => {
-                return Err(error::Error::from_token(
+                return Err(error::Error::from_cl_ln(
                     error::ErrorType::UnexpectedToken(t.token_type.clone()),
                     t,
                 ));
@@ -311,7 +311,7 @@ fn parse_array_access(
                 lexer::TokenType::SquareClose => {
                     if square_count == 1 {
                         if curly_count != 0 || paren_count != 0 {
-                            return Err(error::Error::from_token(
+                            return Err(error::Error::from_cl_ln(
                                 error::ErrorType::UnexpectedCloseSquare,
                                 t,
                             ));
@@ -322,11 +322,11 @@ fn parse_array_access(
                         if array_access_tokens.len() == 0 {
                             return Err(error::Error::from_cl_ln(
                                 error::ErrorType::EmptyExpression,
-                                cl_ln_from_many_expression_tokens(&tokens[1..=i]),
+                                &cl_ln::combine(&tokens[1..=i]),
                             ));
                         }
 
-                        let cl_ln = cl_ln_from_many_expression_tokens(
+                        let cl_ln = cl_ln::combine(
                             &[
                                 &[ExpressionToken::Expression(expression.clone())],
                                 &tokens[..=i],
@@ -357,9 +357,9 @@ fn parse_array_access(
     }
 
     match &tokens[0] {
-        ExpressionToken::Token(t) => Err(error::Error::from_token(
+        ExpressionToken::Token(t) => Err(error::Error::from_cl_ln(
             error::ErrorType::SquareNotClosed,
-            &t,
+            t,
         )),
         _ => panic!("First token must be a ["),
     }
@@ -393,20 +393,17 @@ fn parse_property_access(
     }
 
     if tokens.len() == 1 {
-        let cl_ln = cl_ln_from_many_expression_tokens(&[
-            ExpressionToken::Expression(expression),
-            tokens[0].clone(),
-        ]);
+        let cl_ln = cl_ln::combine(&[ExpressionToken::Expression(expression), tokens[0].clone()]);
 
         return Err(error::Error::from_cl_ln(
             error::ErrorType::NoPropertyOnAccess,
-            cl_ln,
+            &cl_ln,
         ));
     }
     if let ExpressionToken::Token(t) = &tokens[1] {
         match &t.token_type {
             lexer::TokenType::Identifier(i) => {
-                let cl_ln = cl_ln_from_many_expression_tokens(
+                let cl_ln = cl_ln::combine(
                     &[
                         &[ExpressionToken::Expression(expression.clone())],
                         &tokens[..=1],
@@ -426,20 +423,17 @@ fn parse_property_access(
                 return all(&[&[ExpressionToken::Expression(expression)], &tokens[2..]].concat());
             }
             _ => {
-                return Err(error::Error::from_token(
+                return Err(error::Error::from_cl_ln(
                     error::ErrorType::UnexpectedToken(t.token_type.clone()),
                     t,
                 ));
             }
         }
     } else {
-        match &tokens[1] {
-            ExpressionToken::Expression(e) => Err(error::Error::from_cl_ln(
-                error::ErrorType::UnexpectedExpression,
-                e.cl_ln(),
-            )),
-            ExpressionToken::Token(_) => unreachable!(),
-        }
+        Err(error::Error::from_cl_ln(
+            error::ErrorType::UnexpectedExpression,
+            &tokens[1],
+        ))
     }
 }
 
@@ -480,7 +474,7 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
                 vals.push(ident.to_string());
 
                 if i != 0 && !was_last_double_colon {
-                    return Err(error::Error::from_token(
+                    return Err(error::Error::from_cl_ln(
                         error::ErrorType::UnexpectedToken(lexer::TokenType::Identifier(
                             ident.to_string(),
                         )),
@@ -498,7 +492,7 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
                 }
 
                 if peek_iter.peek().is_none() {
-                    return Err(error::Error::from_token(
+                    return Err(error::Error::from_cl_ln(
                         error::ErrorType::UnexpectedToken(lexer::TokenType::DoubleColon),
                         t,
                     ));
@@ -512,7 +506,7 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
                         ..
                     }) => {}
                     ExpressionToken::Token(t) => {
-                        return Err(error::Error::from_token(
+                        return Err(error::Error::from_cl_ln(
                             error::ErrorType::UnexpectedToken(t.token_type.clone()),
                             t,
                         ));
@@ -543,7 +537,7 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
 
     let end = vals.len() * 2 - 1;
 
-    let cl_ln = cl_ln_from_many_expression_tokens(&tokens[..end]);
+    let cl_ln = cl_ln::combine(&tokens[..end]);
 
     let expression = All::SingleDataUnit {
         value: SingleDataUnit::Identifier {

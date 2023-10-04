@@ -11,20 +11,34 @@ enum ExpressionToken {
     Expression(node::expression::All),
 }
 
-fn cl_ln_from_expression_token(token: &ExpressionToken) -> node::ClLn {
-    match token {
-        ExpressionToken::Token(token) => node::cl_ln_from_token(token),
-        ExpressionToken::Expression(expression) => expression.cl_ln(),
+impl cl_ln::ClLn for ExpressionToken {
+    fn cl_start(&self) -> usize {
+        match self {
+            ExpressionToken::Token(token) => token.cl_start(),
+            ExpressionToken::Expression(expression) => expression.cl_start(),
+        }
     }
-}
 
-fn cl_ln_from_many_expression_tokens(tokens: &[ExpressionToken]) -> node::ClLn {
-    node::cl_ln_from_many_cl_ln(
-        &tokens[..]
-            .into_iter()
-            .map(cl_ln_from_expression_token)
-            .collect::<Vec<_>>(),
-    )
+    fn cl_end(&self) -> usize {
+        match self {
+            ExpressionToken::Token(token) => token.cl_end(),
+            ExpressionToken::Expression(expression) => expression.cl_end(),
+        }
+    }
+
+    fn ln_start(&self) -> usize {
+        match self {
+            ExpressionToken::Token(token) => token.ln_start(),
+            ExpressionToken::Expression(expression) => expression.ln_start(),
+        }
+    }
+
+    fn ln_end(&self) -> usize {
+        match self {
+            ExpressionToken::Token(token) => token.ln_end(),
+            ExpressionToken::Expression(expression) => expression.ln_end(),
+        }
+    }
 }
 
 /// The expression parser. An expression is anything that can be evaluated to a single value.
@@ -69,7 +83,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<node::expression::All, error::Erro
                 p_count -= 1;
 
                 if p_count < 0 {
-                    return Err(error::Error::from_token(
+                    return Err(error::Error::from_cl_ln(
                         error::ErrorType::UnexpectedCloseParen,
                         t,
                     ));
@@ -81,9 +95,9 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<node::expression::All, error::Erro
                     let p_tokens = &tokens[p_start.unwrap() + 1..p_end];
 
                     if p_tokens.len() == 0 {
-                        return Err(error::Error::from_many_tokens(
+                        return Err(error::Error::from_cl_ln(
                             error::ErrorType::EmptyExpression,
-                            &tokens[p_start.unwrap()..=p_end],
+                            &cl_ln::combine(&tokens[p_start.unwrap()..=p_end]),
                         ));
                     }
 
@@ -121,7 +135,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<node::expression::All, error::Erro
     }
 
     if p_count > 0 {
-        return Err(error::Error::from_token(
+        return Err(error::Error::from_cl_ln(
             error::ErrorType::UnclosedExpression,
             &tokens[p_start.unwrap()],
         ));

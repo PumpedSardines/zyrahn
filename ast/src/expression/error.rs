@@ -75,39 +75,35 @@ impl Error {
         }
     }
 
-    pub fn from_cl_ln(error_type: ErrorType, token: node::ClLn) -> Error {
+    pub fn from_cl_ln<T: Sized>(error_type: ErrorType, v: &T) -> Error
+    where
+        T: cl_ln::ClLn,
+    {
         Error {
             error_type,
-            cl_start: token.1,
-            cl_end: token.3,
-            ln_start: token.0,
-            ln_end: token.2,
+            cl_start: v.cl_start(),
+            cl_end: v.cl_end(),
+            ln_start: v.ln_start(),
+            ln_end: v.ln_end(),
         }
     }
+}
 
-    pub fn from_token(error_type: ErrorType, token: &lexer::Token) -> Error {
-        Error {
-            error_type,
-            cl_start: token.cl_start,
-            cl_end: token.cl_end,
-            ln_start: token.ln_start,
-            ln_end: token.ln_end,
-        }
+impl cl_ln::ClLn for Error {
+    fn cl_start(&self) -> usize {
+        self.cl_start
     }
 
-    pub fn from_many_tokens(error_type: ErrorType, tokens: &[lexer::Token]) -> Error {
-        let min_cl = tokens.iter().map(|t| t.cl_start).min().unwrap();
-        let max_cl = tokens.iter().map(|t| t.cl_end).max().unwrap();
-        let min_ln = tokens.iter().map(|t| t.ln_start).min().unwrap();
-        let max_ln = tokens.iter().map(|t| t.ln_end).max().unwrap();
+    fn cl_end(&self) -> usize {
+        self.cl_end
+    }
 
-        Error {
-            error_type,
-            cl_start: min_cl,
-            cl_end: max_cl,
-            ln_start: min_ln,
-            ln_end: max_ln,
-        }
+    fn ln_start(&self) -> usize {
+        self.ln_start
+    }
+
+    fn ln_end(&self) -> usize {
+        self.ln_end
     }
 }
 

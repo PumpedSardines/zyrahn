@@ -161,16 +161,20 @@ pub struct Token {
     pub cl_end: usize,
 }
 
-impl Token {
-    fn combine(&mut self, token: Token) -> Token {
-        let mut ct = self.clone();
+impl cl_ln::ClLn for Token {
+    fn cl_start(&self) -> usize {
+        self.cl_start
+    }
 
-        ct.ln_start = usize::min(token.ln_start, self.ln_start);
-        ct.cl_start = usize::min(token.cl_start, self.cl_start);
+    fn cl_end(&self) -> usize {
+        self.cl_end
+    }
 
-        ct.ln_end = usize::max(token.ln_end, self.ln_end);
-        ct.cl_end = usize::max(token.cl_end, self.cl_end);
+    fn ln_start(&self) -> usize {
+        self.ln_start
+    }
 
-        ct
+    fn ln_end(&self) -> usize {
+        self.ln_end
     }
 }

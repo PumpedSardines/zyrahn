@@ -76,7 +76,7 @@ pub(super) fn gen(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                 }
 
                 if curly_count < 0 || square_count < 0 || paren_count < 0 {
-                    return Err(error::Error::from_token(
+                    return Err(error::Error::from_cl_ln(
                         {
                             if curly_count < 0 {
                                 error::ErrorType::UnexpectedCloseCurly
@@ -101,26 +101,18 @@ pub(super) fn gen(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                     macro_rules! matcher {
                         ($s:ident::$x:ident) => {{
                             if left.len() == 0 || right.len() == 0 {
-                                return Err(error::Error::from_token(
+                                return Err(error::Error::from_cl_ln(
                                     error::ErrorType::CannotPerformOperationOnEmpty(
                                         lexer::TokenType::$x,
                                     ),
-                                    &token,
+                                    token,
                                 ));
                             }
 
                             let left = gen(left)?;
                             let right = gen(right)?;
 
-                            let cl_ln = node::cl_ln_from_many_cl_ln(
-                                &tokens
-                                    .iter()
-                                    .map(|t| match t {
-                                        ExpressionToken::Token(t) => node::cl_ln_from_token(t),
-                                        ExpressionToken::Expression(e) => e.cl_ln(),
-                                    })
-                                    .collect::<Vec<_>>(),
-                            );
+                            let cl_ln = cl_ln::combine(&tokens);
 
                             All::$s {
                                 value: $s::$x {

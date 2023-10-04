@@ -15,11 +15,16 @@ dependencies = [
 name = "ast"
 version = "0.1.0"
 dependencies = [
+ "cl_ln",
  "lexer",
  "serde",
  "serde_json",
  "thiserror",
 ]
+
+[[package]]
+name = "cl_ln"
+version = "0.1.0"
 
 [[package]]
 name = "itoa"
@@ -31,6 +36,7 @@ checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
 name = "lexer"
 version = "0.1.0"
 dependencies = [
+ "cl_ln",
  "regex",
  "thiserror",
 ]
@@ -55,6 +61,7 @@ name = "programming-language"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "cl_ln",
  "lexer",
 ]
 

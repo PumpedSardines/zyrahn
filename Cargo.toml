@@ -8,9 +8,11 @@ edition = "2021"
 [workspace]
 members = [
   "lexer",
-  "ast"
+  "ast",
+  "cl_ln"
 ]
 
 [dependencies]
 lexer = { path = "lexer" }
 ast = { path = "ast" }
+cl_ln = { path = "cl_ln" }
