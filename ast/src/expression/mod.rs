@@ -65,8 +65,8 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<node::expression::All, error::Erro
     // Example:
     // (3 + 4)() // This is not possible
     // my_function() // This is possible
-    // (my_function)() // This is possible
-    // (my_function()) // This is not possible
+    // (my_function)() // This is not possible
+    // (my_function()) // This is possible
 
     // Pretty ugly code that will parse all parentheses
     let mut ret_tokens: Vec<ExpressionToken> = vec![];
