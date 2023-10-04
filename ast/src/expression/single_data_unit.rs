@@ -521,7 +521,14 @@ fn parse_function_call(
     }
 
     if paren_count != 0 || curly_count != 0 || square_count != 0 {
-        panic!("Parenthesis not closed, should be handled by the loop above");
+        if paren_count != 0 {
+            return Err(error::Error::from_cl_ln(
+                error::ErrorType::ParenNotClosed,
+                &tokens[0],
+            ));
+        } else {
+            panic!("Parenthesis not closed, should be handled by the loop above");
+        }
     }
 
     let last_arg_tokens = &tokens[start..end];
