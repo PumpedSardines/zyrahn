@@ -1,5 +1,5 @@
+use crate::error;
 use crate::node;
-pub mod error;
 mod exp;
 mod single_data_unit;
 // First pass do all the evaluation stuff

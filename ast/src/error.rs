@@ -1,9 +1,12 @@
 #[derive(Debug)]
 pub enum ErrorType {
+    /// ---- Expression ----
     UnexpectedCloseParen,
     UnexpectedCloseCurly,
     UnexpectedCloseSquare,
     SquareNotClosed,
+    // This will be used with struct inits later
+    #[allow(dead_code)]
     CurlyNotClosed,
     ParenNotClosed,
     UnexpectedExpression,
@@ -57,13 +60,12 @@ pub struct Error {
 impl std::error::Error for Error {}
 
 impl Error {
-    #[allow(dead_code)]
     pub fn new(
         error_type: ErrorType,
-        cl_start: usize,
-        cl_end: usize,
         ln_start: usize,
+        cl_start: usize,
         ln_end: usize,
+        cl_end: usize,
     ) -> Error {
         Error {
             error_type,
@@ -78,13 +80,13 @@ impl Error {
     where
         T: cl_ln::ClLn,
     {
-        Error {
+        Error::new(
             error_type,
-            cl_start: v.cl_start(),
-            cl_end: v.cl_end(),
-            ln_start: v.ln_start(),
-            ln_end: v.ln_end(),
-        }
+            v.cl_start(),
+            v.cl_end(),
+            v.ln_start(),
+            v.ln_end(),
+        )
     }
 }
 

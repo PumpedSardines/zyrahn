@@ -1,4 +1,5 @@
-use super::{error, single_data_unit};
+use super::single_data_unit;
+use crate::error;
 use crate::node;
 
 use super::ExpressionToken;
