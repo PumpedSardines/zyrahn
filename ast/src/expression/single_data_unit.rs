@@ -7,6 +7,15 @@ use cl_ln::ClLn;
 
 // Parses all single data units. This is the smallest unit of an expression. For example literals,
 // function calls, property access, etc.
+//
+// # Example:
+// ```
+// 3
+// 4.5
+// "Hello world"
+// my_function()
+// my_variable
+// std::print(*already evaluated*)[0].property
 pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, error::Error> {
     if tokens.len() == 0 {
         // Should never get here
