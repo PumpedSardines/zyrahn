@@ -1,5 +1,5 @@
 fn main() {
-    let code: &'static str = "example**(8-3) == 3 && !true || false";
+    let code: &'static str = "test::1";
     let tokens = lexer::tokenize(code).unwrap();
 
     println!(

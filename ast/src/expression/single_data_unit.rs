@@ -459,12 +459,9 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
         let t = match t {
             ExpressionToken::Token(t) => t,
             ExpressionToken::Expression(e) => {
-                return Err(error::Error::new(
+                return Err(error::Error::from_cl_ln(
                     error::ErrorType::UnexpectedExpression,
-                    e.cl_start(),
-                    e.cl_end(),
-                    e.ln_start(),
-                    e.ln_end(),
+                    e,
                 ));
             }
         };
@@ -512,12 +509,9 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
                         ));
                     }
                     ExpressionToken::Expression(e) => {
-                        return Err(error::Error::new(
+                        return Err(error::Error::from_cl_ln(
                             error::ErrorType::UnexpectedExpression,
-                            e.cl_start(),
-                            e.cl_end(),
-                            e.ln_start(),
-                            e.ln_end(),
+                            e,
                         ));
                     }
                 };
