@@ -1,9 +1,9 @@
 macro_rules! node_macro {
-    (pub enum $x:ident { $($i:ident { $($k:ident : $v:ty$(,)?)+ },)+ }) => {
-        #[derive(Clone, Serialize, Deserialize, Debug)]
+    (pub enum $x:ident { $($i:ident { $($k:ident : $v:ty$(,)?)* },)+ }) => {
+        #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
         pub enum $x {
             $($i {
-                $($k: $v,)+
+                $($k: $v,)*
                 // ln_start, cl_start, ln_end, cl_end
                 cl_ln: (usize, usize, usize, usize)
             },)+
@@ -40,18 +40,16 @@ macro_rules! node_macro {
 pub mod expression {
     use std::collections::HashMap;
 
-    use serde::{Deserialize, Serialize};
-
-    node_macro!(
+    node_macro! {
         pub enum Literal {
             Integer { value: i64 },
             Float { value: f64 },
             String { value: String },
             Boolean { value: bool },
         }
-    );
+    }
 
-    node_macro!(
+    node_macro! {
         pub enum SingleDataUnit {
             Array {
                 values: Vec<All>,
@@ -81,9 +79,9 @@ pub mod expression {
                 property: String,
             },
         }
-    );
+    }
 
-    node_macro!(
+    node_macro! {
         pub enum Arithmetic {
             Neg { value: Box<All> },
             Add { left: Box<All>, right: Box<All> },
@@ -93,18 +91,18 @@ pub mod expression {
             Mod { left: Box<All>, right: Box<All> },
             Pow { left: Box<All>, right: Box<All> },
         }
-    );
+    }
 
-    node_macro!(
+    node_macro! {
         pub enum BooleanLogic {
             Or { left: Box<All>, right: Box<All> },
             And { left: Box<All>, right: Box<All> },
 
             Not { value: Box<All> },
         }
-    );
+    }
 
-    node_macro!(
+    node_macro! {
         pub enum Cmp {
             Equal { left: Box<All>, right: Box<All> },
             NotEqual { left: Box<All>, right: Box<All> },
@@ -113,14 +111,45 @@ pub mod expression {
             GreaterThan { left: Box<All>, right: Box<All> },
             GreaterThanOrEqual { left: Box<All>, right: Box<All> },
         }
-    );
+    }
 
-    node_macro!(
+    node_macro! {
         pub enum All {
             SingleDataUnit { value: SingleDataUnit },
             Arithmetic { value: Arithmetic },
             BooleanLogic { value: BooleanLogic },
             Cmp { value: Cmp },
         }
-    );
+    }
+}
+
+mod block {
+    use super::*;
+
+    node_macro! {
+        pub enum All {
+            Expression { value: expression::All },
+            If { cond: expression::All, then_body: Vec<All> },
+            IfElse { cond: expression::All, then_body: Vec<All>, else_body: Vec<All> },
+            While { cond: expression::All, body: Vec<All> },
+            VariableDeclaration { identifier: String, r#type: Type, value: expression::All },
+            VariableAssignment { identifier: String, value: expression::All },
+            Return { value: Option<expression::All> },
+            Break { },
+            Continue { },
+        }
+    }
+
+    node_macro! {
+        pub enum Type {
+            Integer { },
+            Float { },
+            String { },
+            Boolean { },
+            // This allows for nested arrays, which are not supported by the language
+            // but are supported by the parser. So we'll check for this is the type checker
+            Array { inner: Box<Type> },
+            Struct { namespace: Vec<String>, identifier: String },
+        }
+    }
 }
