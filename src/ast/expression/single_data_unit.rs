@@ -1,9 +1,6 @@
-use super::exp;
-use super::ExpressionToken;
-use crate::error;
-use crate::node;
-use crate::node::expression::*;
-use cl_ln::ClLn;
+use super::*;
+use crate::cl_ln::ClLn;
+use ast::node::expression;
 
 // Parses all single data units. This is the smallest unit of an expression. For example literals,
 // function calls, property access, etc.
@@ -16,7 +13,9 @@ use cl_ln::ClLn;
 // my_function()
 // my_variable
 // std::print(*already evaluated*)[0].property
-pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, error::Error> {
+pub(super) fn all(
+    tokens: &[ExpressionToken],
+) -> Result<expression::All, error::Error<error::AstErrorType>> {
     if tokens.len() == 0 {
         // Should never get here
         panic!("Cannot parse empty expression");
@@ -31,9 +30,9 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
 
                     let cl_ln = cl_ln::combine(&tokens);
 
-                    return Ok(All::BooleanLogic {
-                        value: BooleanLogic::Not {
-                            value: Box::new(All::from(value)),
+                    return Ok(expression::All::BooleanLogic {
+                        value: expression::BooleanLogic::Not {
+                            value: Box::new(expression::All::from(value)),
                             cl_ln,
                         },
                         cl_ln,
@@ -45,9 +44,9 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
 
                     let cl_ln = cl_ln::combine(&tokens);
 
-                    return Ok(All::Arithmetic {
-                        value: Arithmetic::Neg {
-                            value: Box::new(All::from(value)),
+                    return Ok(expression::All::Arithmetic {
+                        value: expression::Arithmetic::Neg {
+                            value: Box::new(expression::All::from(value)),
                             cl_ln,
                         },
                         cl_ln,
@@ -62,10 +61,10 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
         ($scope:ident::$type:ident, $t:expr, $v:expr) => {
             let cl_ln = $t.cl_ln();
 
-            let l = $scope::$type { value: $v, cl_ln };
+            let l = expression::$scope::$type { value: $v, cl_ln };
 
-            let expression = All::SingleDataUnit {
-                value: SingleDataUnit::Literal { literal: l, cl_ln },
+            let expression = expression::All::SingleDataUnit {
+                value: expression::SingleDataUnit::Literal { literal: l, cl_ln },
                 cl_ln,
             };
 
@@ -95,7 +94,7 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                         }
                         _ => {
                             return Err(error::Error::from_cl_ln(
-                                error::ErrorType::UnexpectedToken(t.token_type.clone()),
+                                error::AstErrorType::UnexpectedToken(t.token_type.clone()),
                                 t,
                             ));
                         }
@@ -125,7 +124,7 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
             }
             _ => {
                 return Err(error::Error::from_cl_ln(
-                    error::ErrorType::UnexpectedToken(t.token_type.clone()),
+                    error::AstErrorType::UnexpectedToken(t.token_type.clone()),
                     t,
                 ));
             }
@@ -136,9 +135,9 @@ pub(super) fn all(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
 }
 
 fn parse_array_access(
-    expression: node::expression::All,
+    expression: expression::All,
     tokens: &[ExpressionToken],
-) -> Result<node::expression::All, error::Error> {
+) -> Result<expression::All, error::Error<error::AstErrorType>> {
     if tokens.len() == 0 {
         panic!("Cannot parse empty expression");
     }
@@ -167,7 +166,7 @@ fn parse_array_access(
                     if square_count == 1 {
                         if curly_count != 0 || paren_count != 0 {
                             return Err(error::Error::from_cl_ln(
-                                error::ErrorType::UnexpectedCloseSquare,
+                                error::AstErrorType::UnexpectedCloseSquare,
                                 t,
                             ));
                         }
@@ -176,7 +175,7 @@ fn parse_array_access(
 
                         if array_access_tokens.len() == 0 {
                             return Err(error::Error::from_cl_ln(
-                                error::ErrorType::EmptyExpression,
+                                error::AstErrorType::EmptyExpression,
                                 &cl_ln::combine(&tokens[1..=i]),
                             ));
                         }
@@ -189,12 +188,12 @@ fn parse_array_access(
                             .concat(),
                         );
 
-                        let expression = All::SingleDataUnit {
+                        let expression = expression::All::SingleDataUnit {
                             cl_ln,
-                            value: SingleDataUnit::ArrayAccess {
+                            value: expression::SingleDataUnit::ArrayAccess {
                                 cl_ln,
                                 array: Box::new(expression.clone()),
-                                index: Box::new(exp::gen(array_access_tokens)?),
+                                index: Box::new(operations::gen(array_access_tokens)?),
                             },
                         };
 
@@ -213,7 +212,7 @@ fn parse_array_access(
 
     match &tokens[0] {
         ExpressionToken::Token(t) => Err(error::Error::from_cl_ln(
-            error::ErrorType::SquareNotClosed,
+            error::AstErrorType::SquareNotClosed,
             t,
         )),
         _ => panic!("First token must be a ["),
@@ -232,9 +231,9 @@ fn parse_array_access(
 /// (3 + 1).example
 /// ```
 fn parse_property_access(
-    expression: node::expression::All,
+    expression: expression::All,
     tokens: &[ExpressionToken],
-) -> Result<node::expression::All, error::Error> {
+) -> Result<expression::All, error::Error<error::AstErrorType>> {
     if tokens.len() == 0 {
         panic!("Cannot parse empty expression");
     }
@@ -251,7 +250,7 @@ fn parse_property_access(
         let cl_ln = cl_ln::combine(&[ExpressionToken::Expression(expression), tokens[0].clone()]);
 
         return Err(error::Error::from_cl_ln(
-            error::ErrorType::NoPropertyOnAccess,
+            error::AstErrorType::NoPropertyOnAccess,
             &cl_ln,
         ));
     }
@@ -266,9 +265,9 @@ fn parse_property_access(
                     .concat(),
                 );
 
-                let expression = All::SingleDataUnit {
+                let expression = expression::All::SingleDataUnit {
                     cl_ln,
-                    value: SingleDataUnit::PropertyAccess {
+                    value: expression::SingleDataUnit::PropertyAccess {
                         object: Box::new(expression.clone()),
                         property: i.to_string(),
                         cl_ln,
@@ -279,23 +278,23 @@ fn parse_property_access(
             }
             _ => {
                 return Err(error::Error::from_cl_ln(
-                    error::ErrorType::UnexpectedToken(t.token_type.clone()),
+                    error::AstErrorType::UnexpectedToken(t.token_type.clone()),
                     t,
                 ));
             }
         }
     } else {
         Err(error::Error::from_cl_ln(
-            error::ErrorType::UnexpectedExpression,
+            error::AstErrorType::UnexpectedExpression,
             &tokens[1],
         ))
     }
 }
 
 fn parse_function_call(
-    expression: node::expression::All,
+    expression: expression::All,
     tokens: &[ExpressionToken],
-) -> Result<node::expression::All, error::Error> {
+) -> Result<expression::All, error::Error<error::AstErrorType>> {
     if tokens.len() == 0 {
         panic!("Cannot parse empty expression");
     }
@@ -325,7 +324,7 @@ fn parse_function_call(
 
                     if curly_count != 0 || paren_count != 0 {
                         return Err(error::Error::from_cl_ln(
-                            error::ErrorType::UnexpectedCloseParen,
+                            error::AstErrorType::UnexpectedCloseParen,
                             t,
                         ));
                     }
@@ -348,12 +347,12 @@ fn parse_function_call(
 
                     if exp_tokens.len() == 0 {
                         return Err(error::Error::from_cl_ln(
-                            error::ErrorType::EmptyExpression,
+                            error::AstErrorType::EmptyExpression,
                             &cl_ln::combine(&tokens[i - 1..=i]),
                         ));
                     }
 
-                    let expression = exp::gen(exp_tokens)?;
+                    let expression = operations::gen(exp_tokens)?;
                     args.push(expression);
                     start = i + 1;
                 }
@@ -366,7 +365,7 @@ fn parse_function_call(
     if paren_count != 0 || curly_count != 0 || square_count != 0 {
         if paren_count != 0 {
             return Err(error::Error::from_cl_ln(
-                error::ErrorType::ParenNotClosed,
+                error::AstErrorType::ParenNotClosed,
                 &tokens[0],
             ));
         } else {
@@ -376,7 +375,7 @@ fn parse_function_call(
 
     let last_arg_tokens = &tokens[start..end];
     if last_arg_tokens.len() != 0 {
-        args.push(exp::gen(last_arg_tokens)?);
+        args.push(operations::gen(last_arg_tokens)?);
     }
 
     let all_tokens = &[
@@ -385,8 +384,8 @@ fn parse_function_call(
     ]
     .concat();
 
-    let expression = All::SingleDataUnit {
-        value: SingleDataUnit::FunctionCall {
+    let expression = expression::All::SingleDataUnit {
+        value: expression::SingleDataUnit::FunctionCall {
             function: Box::new(expression.clone()),
             arguments: args,
             cl_ln: cl_ln::combine(all_tokens),
@@ -412,7 +411,9 @@ fn parse_function_call(
 /// std::print::println
 /// ```
 ///
-fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All, error::Error> {
+fn parse_identifier(
+    tokens: &[ExpressionToken],
+) -> Result<expression::All, error::Error<error::AstErrorType>> {
     let mut peek_iter = tokens.iter().enumerate().peekable();
 
     let mut vals: Vec<String> = vec![];
@@ -424,7 +425,7 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
             ExpressionToken::Token(t) => t,
             ExpressionToken::Expression(e) => {
                 return Err(error::Error::from_cl_ln(
-                    error::ErrorType::UnexpectedExpression,
+                    error::AstErrorType::UnexpectedExpression,
                     e,
                 ));
             }
@@ -436,7 +437,7 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
 
                 if i != 0 && !was_last_double_colon {
                     return Err(error::Error::from_cl_ln(
-                        error::ErrorType::UnexpectedToken(lexer::TokenType::Identifier(
+                        error::AstErrorType::UnexpectedToken(lexer::TokenType::Identifier(
                             ident.to_string(),
                         )),
                         t,
@@ -454,7 +455,7 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
 
                 if peek_iter.peek().is_none() {
                     return Err(error::Error::from_cl_ln(
-                        error::ErrorType::UnexpectedToken(lexer::TokenType::DoubleColon),
+                        error::AstErrorType::UnexpectedToken(lexer::TokenType::DoubleColon),
                         t,
                     ));
                 }
@@ -468,13 +469,13 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
                     }) => {}
                     ExpressionToken::Token(t) => {
                         return Err(error::Error::from_cl_ln(
-                            error::ErrorType::UnexpectedToken(t.token_type.clone()),
+                            error::AstErrorType::UnexpectedToken(t.token_type.clone()),
                             t,
                         ));
                     }
                     ExpressionToken::Expression(e) => {
                         return Err(error::Error::from_cl_ln(
-                            error::ErrorType::UnexpectedExpression,
+                            error::AstErrorType::UnexpectedExpression,
                             e,
                         ));
                     }
@@ -497,8 +498,8 @@ fn parse_identifier(tokens: &[ExpressionToken]) -> Result<node::expression::All,
 
     let cl_ln = cl_ln::combine(&tokens[..end]);
 
-    let expression = All::SingleDataUnit {
-        value: SingleDataUnit::Identifier {
+    let expression = expression::All::SingleDataUnit {
+        value: expression::SingleDataUnit::Identifier {
             namespace,
             identifier,
             cl_ln,

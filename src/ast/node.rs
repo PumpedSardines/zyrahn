@@ -1,3 +1,5 @@
+use crate::*;
+
 macro_rules! node_macro {
     (pub enum $x:ident { $($i:ident { $($k:ident : $v:ty$(,)?)* },)+ }) => {
         #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
@@ -38,6 +40,7 @@ macro_rules! node_macro {
 }
 
 pub mod expression {
+    use super::*;
     use std::collections::HashMap;
 
     node_macro! {

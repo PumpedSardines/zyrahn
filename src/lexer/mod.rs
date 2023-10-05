@@ -1,4 +1,13 @@
-mod error;
+//! The lexer for zyrahn.
+//!
+//! What is a lexer?
+//! A lexer is a program that takes in a string of code and turns it into a list of tokens. A
+//! tokens is a representation of a piece of code. For example, the string "3 + 3" would be turned
+//! into the tokens [IntegerLiteral(3), Add, IntegerLiteral(3)]. This is useful because it makes
+//! it easier to create the abstract syntax tree (AST) later on.
+
+use crate::*;
+
 mod token;
 pub use token::*;
 
@@ -41,7 +50,24 @@ impl Eval {
     }
 }
 
-pub fn tokenize(code: &str) -> Result<Vec<Token>, error::Error> {
+/// Turns a string of code into a list of tokens.
+///
+/// # Examples
+/// ```
+/// use zyrahn::lexer;
+///
+/// let tokens = lexer::tokenize("3 + 3");
+///
+/// if let Err(e) = tokens {
+///     println!("{}", e);
+///     return;
+/// }
+///
+/// let tokens = tokens.unwrap();
+///
+/// println!("{:?}", tokens); // [IntegerLiteral(3), Add, IntegerLiteral(3)]
+/// ```
+pub fn tokenize(code: &str) -> Result<Vec<Token>, error::Error<error::LexerErrorType>> {
     let mut tokens = vec![];
 
     let lines = code.split('\n');
@@ -164,7 +190,7 @@ pub fn tokenize(code: &str) -> Result<Vec<Token>, error::Error> {
                     }
                     None => {
                         return Err(error::Error::new(
-                            error::ErrorType::UnexpectedSymbol(c.to_string()),
+                            error::LexerErrorType::UnexpectedSymbol(c.to_string()),
                             ln + 1,
                             cl + 1,
                             ln + 1,
@@ -188,7 +214,7 @@ pub fn tokenize(code: &str) -> Result<Vec<Token>, error::Error> {
             let cl_start = cl_start + 1;
 
             return Err(error::Error::new(
-                error::ErrorType::NonTerminatedString,
+                error::LexerErrorType::NonTerminatedString,
                 ln,
                 cl_start,
                 ln,
@@ -210,7 +236,7 @@ fn parse_token(
     ln: usize,
     cl_start: usize,
     cl_end: usize,
-) -> Result<Token, error::Error> {
+) -> Result<Token, error::Error<error::LexerErrorType>> {
     let token_type = match eval {
         Eval::Word => match word {
             "fnc" => TokenType::Function,
@@ -240,7 +266,7 @@ fn parse_token(
                 let cl_end = cl_end + 1;
 
                 return Err(error::Error::new(
-                    error::ErrorType::UnexpectedSymbol(word.to_string()),
+                    error::LexerErrorType::UnexpectedSymbol(word.to_string()),
                     ln,
                     cl_start,
                     ln,
@@ -293,7 +319,7 @@ fn parse_token(
                 let cl_end = cl_end + 1;
 
                 return Err(error::Error::new(
-                    error::ErrorType::InvalidNumber(word.to_string()),
+                    error::LexerErrorType::InvalidNumber(word.to_string()),
                     ln,
                     cl_start,
                     ln,

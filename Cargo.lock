@@ -3,33 +3,10 @@
 version = 3
 
 [[package]]
-name = "ast"
-version = "0.1.0"
-dependencies = [
- "cl_ln",
- "lexer",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "cl_ln"
-version = "0.1.0"
-
-[[package]]
 name = "itoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
-
-[[package]]
-name = "lexer"
-version = "0.1.0"
-dependencies = [
- "cl_ln",
- "thiserror",
-]
 
 [[package]]
 name = "proc-macro2"
@@ -98,26 +75,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "thiserror"
-version = "1.0.49"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1177e8c6d7ede7afde3585fd2513e611227efd6481bd78d2e82ba1ce16557ed4"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.49"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10712f02019e9288794769fba95cd6847df9874d49d871d062172f9dd41bc4cc"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -127,6 +84,6 @@ checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
 name = "zyrahn"
 version = "0.1.0"
 dependencies = [
- "ast",
- "lexer",
+ "serde",
+ "serde_json",
 ]

@@ -1,8 +1,5 @@
-use super::single_data_unit;
-use crate::error;
-use crate::node;
-
-use super::ExpressionToken;
+use super::*;
+use ast::node::expression;
 
 const ORDER_OF_OPERATIONS: &'static [&'static [lexer::TokenType]] = {
     use lexer::TokenType::*;
@@ -42,9 +39,9 @@ fn is_op(token_type: &lexer::TokenType) -> bool {
 /// - (6 + 7) is presumed to be pre-calculated
 /// - Go through all other operators in order of operations and send the values in between to
 /// single_data_unit parsing
-pub(super) fn gen(tokens: &[ExpressionToken]) -> Result<node::expression::All, error::Error> {
-    use crate::node::expression::*;
-
+pub(super) fn gen(
+    tokens: &[ExpressionToken],
+) -> Result<expression::All, error::Error<error::AstErrorType>> {
     for order_of_operations in ORDER_OF_OPERATIONS.iter().rev() {
         let itr = tokens.iter();
 
@@ -80,11 +77,11 @@ pub(super) fn gen(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                     return Err(error::Error::from_cl_ln(
                         {
                             if curly_count < 0 {
-                                error::ErrorType::UnexpectedCloseCurly
+                                error::AstErrorType::UnexpectedCloseCurly
                             } else if square_count < 0 {
-                                error::ErrorType::UnexpectedCloseSquare
+                                error::AstErrorType::UnexpectedCloseSquare
                             } else {
-                                error::ErrorType::UnexpectedCloseParen
+                                error::AstErrorType::UnexpectedCloseParen
                             }
                         },
                         token,
@@ -103,7 +100,7 @@ pub(super) fn gen(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
                         ($s:ident::$x:ident) => {{
                             if left.len() == 0 || right.len() == 0 {
                                 return Err(error::Error::from_cl_ln(
-                                    error::ErrorType::CannotPerformOperationOnEmpty(
+                                    error::AstErrorType::CannotPerformOperationOnEmpty(
                                         lexer::TokenType::$x,
                                     ),
                                     token,
@@ -115,8 +112,8 @@ pub(super) fn gen(tokens: &[ExpressionToken]) -> Result<node::expression::All, e
 
                             let cl_ln = cl_ln::combine(&tokens);
 
-                            All::$s {
-                                value: $s::$x {
+                            expression::All::$s {
+                                value: expression::$s::$x {
                                     left: Box::new(left),
                                     right: Box::new(right),
                                     cl_ln,

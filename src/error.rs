@@ -1,5 +1,26 @@
+use crate::*;
+
 #[derive(Debug)]
-pub enum ErrorType {
+pub enum LexerErrorType {
+    UnexpectedSymbol(String),
+    InvalidNumber(String),
+    NonTerminatedString,
+}
+
+impl std::fmt::Display for LexerErrorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use LexerErrorType as ET;
+
+        match self {
+            ET::UnexpectedSymbol(symbol) => write!(f, "Unexpected symbol '{}'", symbol),
+            ET::InvalidNumber(number) => write!(f, "Invalid number '{}'", number),
+            ET::NonTerminatedString => write!(f, "String not terminated"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum AstErrorType {
     /// ---- Expression ----
     UnexpectedCloseParen,
     UnexpectedCloseCurly,
@@ -19,9 +40,9 @@ pub enum ErrorType {
     UnexpectedToken(lexer::TokenType),
 }
 
-impl std::fmt::Display for ErrorType {
+impl std::fmt::Display for AstErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use ErrorType as ET;
+        use AstErrorType as ET;
 
         match self {
             ET::UnexpectedCloseParen => write!(f, "Unexpected close ')'"),
@@ -47,8 +68,11 @@ impl std::fmt::Display for ErrorType {
 }
 
 #[derive(Debug)]
-pub struct Error {
-    error_type: ErrorType,
+pub struct Error<T>
+where
+    T: Sized + std::fmt::Display + std::fmt::Debug,
+{
+    error_type: T,
     cl_start: usize,
     #[allow(dead_code)]
     cl_end: usize,
@@ -57,16 +81,19 @@ pub struct Error {
     ln_end: usize,
 }
 
-impl std::error::Error for Error {}
+impl<T> std::error::Error for Error<T> where T: Sized + std::fmt::Display + std::fmt::Debug {}
 
-impl Error {
+impl<T> Error<T>
+where
+    T: Sized + std::fmt::Display + std::fmt::Debug,
+{
     pub fn new(
-        error_type: ErrorType,
+        error_type: T,
         ln_start: usize,
         cl_start: usize,
         ln_end: usize,
         cl_end: usize,
-    ) -> Error {
+    ) -> Error<T> {
         Error {
             error_type,
             cl_start,
@@ -76,21 +103,24 @@ impl Error {
         }
     }
 
-    pub fn from_cl_ln<T: Sized>(error_type: ErrorType, v: &T) -> Error
+    pub fn from_cl_ln<V: Sized>(error_type: T, v: &V) -> Error<T>
     where
-        T: cl_ln::ClLn,
+        V: cl_ln::ClLn,
     {
         Error::new(
             error_type,
-            v.cl_start(),
-            v.cl_end(),
             v.ln_start(),
+            v.cl_start(),
             v.ln_end(),
+            v.cl_end(),
         )
     }
 }
 
-impl cl_ln::ClLn for Error {
+impl<T> cl_ln::ClLn for Error<T>
+where
+    T: Sized + std::fmt::Display + std::fmt::Debug,
+{
     fn cl_start(&self) -> usize {
         self.cl_start
     }
@@ -108,7 +138,10 @@ impl cl_ln::ClLn for Error {
     }
 }
 
-impl std::fmt::Display for Error {
+impl<T> std::fmt::Display for Error<T>
+where
+    T: Sized + std::fmt::Display + std::fmt::Debug,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let cl = {
             if self.cl_start == self.cl_end {

@@ -1,45 +1,11 @@
-use crate::error;
-use crate::node;
-mod exp;
+use crate::*;
+
+mod exp_token;
+mod operations;
 mod single_data_unit;
-// First pass do all the evaluation stuff
+use exp_token::*;
 
-/// Internal representation of an expression
-#[derive(Debug, Clone)]
-enum ExpressionToken {
-    Token(lexer::Token),
-    Expression(node::expression::All),
-}
-
-impl cl_ln::ClLn for ExpressionToken {
-    fn cl_start(&self) -> usize {
-        match self {
-            ExpressionToken::Token(token) => token.cl_start(),
-            ExpressionToken::Expression(expression) => expression.cl_start(),
-        }
-    }
-
-    fn cl_end(&self) -> usize {
-        match self {
-            ExpressionToken::Token(token) => token.cl_end(),
-            ExpressionToken::Expression(expression) => expression.cl_end(),
-        }
-    }
-
-    fn ln_start(&self) -> usize {
-        match self {
-            ExpressionToken::Token(token) => token.ln_start(),
-            ExpressionToken::Expression(expression) => expression.ln_start(),
-        }
-    }
-
-    fn ln_end(&self) -> usize {
-        match self {
-            ExpressionToken::Token(token) => token.ln_end(),
-            ExpressionToken::Expression(expression) => expression.ln_end(),
-        }
-    }
-}
+use ast::node::expression;
 
 /// The expression parser. An expression is anything that can be evaluated to a single value.
 ///
@@ -49,7 +15,7 @@ impl cl_ln::ClLn for ExpressionToken {
 /// 6 + 8 * 9 - 10;
 /// (my_variable[6 * -(3 + 4)].property + 3) * 4;
 /// ```
-pub fn gen(tokens: &[lexer::Token]) -> Result<node::expression::All, error::Error> {
+pub fn gen(tokens: &[lexer::Token]) -> Result<expression::All, error::Error<error::AstErrorType>> {
     if tokens.len() == 0 {
         panic!("Cannot parse empty expression");
     }
@@ -84,7 +50,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<node::expression::All, error::Erro
 
                 if p_count < 0 {
                     return Err(error::Error::from_cl_ln(
-                        error::ErrorType::UnexpectedCloseParen,
+                        error::AstErrorType::UnexpectedCloseParen,
                         t,
                     ));
                 }
@@ -96,7 +62,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<node::expression::All, error::Erro
 
                     if p_tokens.len() == 0 {
                         return Err(error::Error::from_cl_ln(
-                            error::ErrorType::EmptyExpression,
+                            error::AstErrorType::EmptyExpression,
                             &cl_ln::combine(&tokens[p_start.unwrap()..=p_end]),
                         ));
                     }
@@ -136,10 +102,10 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<node::expression::All, error::Erro
 
     if p_count > 0 {
         return Err(error::Error::from_cl_ln(
-            error::ErrorType::UnclosedExpression,
+            error::AstErrorType::UnclosedExpression,
             &tokens[p_start.unwrap()],
         ));
     }
 
-    exp::gen(&ret_tokens)
+    operations::gen(&ret_tokens)
 }
