@@ -2,6 +2,10 @@ fn compile(code: &str) -> Result<zyrahn::ast::node::expression::All, Box<dyn std
     let tokens = zyrahn::lexer::tokenize(code)?;
     let ast = zyrahn::ast::gen(&tokens)?;
 
+    if let Err(e) = zyrahn::static_analyzer::check(&ast) {
+        return Err(Box::new(e));
+    }
+
     Ok(ast)
 }
 
@@ -17,5 +21,6 @@ fn main() {
         println!("{}", e);
         std::process::exit(1);
     });
+
     println!("{:#?}", ast);
 }

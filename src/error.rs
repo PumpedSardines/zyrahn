@@ -1,6 +1,19 @@
 use crate::*;
 
 #[derive(Debug)]
+pub enum StaticAnalyzerErrorType {}
+
+impl std::fmt::Display for StaticAnalyzerErrorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use StaticAnalyzerErrorType as ET;
+
+        match self {
+            _ => todo!(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum LexerErrorType {
     UnexpectedSymbol(String),
     InvalidNumber(String),
