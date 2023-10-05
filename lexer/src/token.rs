@@ -7,6 +7,8 @@ pub enum TokenType {
     If,
     Else,
     Return,
+    Break,
+    Continue,
     While,
     Struct,
     Out,

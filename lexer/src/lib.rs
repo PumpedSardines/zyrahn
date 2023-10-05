@@ -219,6 +219,8 @@ fn parse_token(
             "if" => TokenType::If,
             "else" => TokenType::Else,
             "ret" => TokenType::Return,
+            "break" => TokenType::Break,
+            "continue" => TokenType::Continue,
             "while" => TokenType::While,
             "struct" => TokenType::Struct,
             "int" => TokenType::Integer,
