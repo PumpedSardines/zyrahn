@@ -6,7 +6,14 @@ fn compile(code: &str) -> Result<zyrahn::ast::node::expression::All, Box<dyn std
 }
 
 fn main() {
-    let ast = compile("test()").unwrap_or_else(|e| {
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.len() != 2 {
+        println!("Usage: {} <code>", args[0]);
+        std::process::exit(1);
+    }
+
+    let ast = compile(&args[1]).unwrap_or_else(|e| {
         println!("{}", e);
         std::process::exit(1);
     });
