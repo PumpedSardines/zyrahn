@@ -322,7 +322,7 @@ fn parse_function_call(
                 lexer::TokenType::ParenClose => {
                     paren_count -= 1;
 
-                    if curly_count != 0 || paren_count != 0 {
+                    if curly_count != 0 || square_count != 0 {
                         return Err(error::Error::from_cl_ln(
                             error::AstErrorType::UnexpectedCloseParen,
                             t,
