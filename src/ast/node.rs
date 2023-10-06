@@ -54,7 +54,7 @@ pub mod expression {
 
     node_macro! {
         pub enum SingleDataUnit {
-            Array {
+            ArrayInit {
                 values: Vec<All>,
             },
             Literal {
