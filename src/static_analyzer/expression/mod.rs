@@ -167,10 +167,36 @@ pub fn eval_type(
                     )])
                 }
             }
-            expression::SingleDataUnit::ArrayInit { .. } => unimplemented!(),
-            expression::SingleDataUnit::StructInit { .. } => unimplemented!(),
-            expression::SingleDataUnit::ArrayAccess { .. } => unimplemented!(),
-            expression::SingleDataUnit::PropertyAccess { .. } => unimplemented!(),
+            expression::SingleDataUnit::ArrayInit { .. } => {
+                return Err(vec![error::Error::from_cl_ln(
+                    error::StaticAnalyzerErrorType::FeatureNotImplemented("Array init".to_string()),
+                    tree,
+                )])
+            }
+            expression::SingleDataUnit::StructInit { .. } => {
+                return Err(vec![error::Error::from_cl_ln(
+                    error::StaticAnalyzerErrorType::FeatureNotImplemented(
+                        "Struct init".to_string(),
+                    ),
+                    tree,
+                )])
+            }
+            expression::SingleDataUnit::ArrayAccess { .. } => {
+                return Err(vec![error::Error::from_cl_ln(
+                    error::StaticAnalyzerErrorType::FeatureNotImplemented(
+                        "Array access".to_string(),
+                    ),
+                    tree,
+                )])
+            }
+            expression::SingleDataUnit::PropertyAccess { .. } => {
+                return Err(vec![error::Error::from_cl_ln(
+                    error::StaticAnalyzerErrorType::FeatureNotImplemented(
+                        "Property access".to_string(),
+                    ),
+                    tree,
+                )])
+            }
         },
         expression::All::Cmp { value, .. } => match value {
             expression::Cmp::Equal { left, right, .. } => {

@@ -90,7 +90,12 @@ pub(super) fn all(
                         }
                         lexer::TokenType::CurlyOpen => {
                             // TODO: Implement struct init
-                            unimplemented!("struct initialization");
+                            return Err(error::Error::from_cl_ln(
+                                error::AstErrorType::FeatureNotImplemented(
+                                    "struct init".to_string(),
+                                ),
+                                t,
+                            ));
                         }
                         _ => {
                             return Err(error::Error::from_cl_ln(
@@ -117,7 +122,10 @@ pub(super) fn all(
             }
             lexer::TokenType::SquareOpen => {
                 // TODO: Implement array
-                unimplemented!("array initialization");
+                return Err(error::Error::from_cl_ln(
+                    error::AstErrorType::FeatureNotImplemented("array init".to_string()),
+                    t,
+                ));
             }
             lexer::TokenType::Identifier(_) => {
                 return parse_identifier(tokens);

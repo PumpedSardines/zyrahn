@@ -14,6 +14,7 @@ pub enum StaticAnalyzerErrorType {
     FunctionNotDefined(String, Vec<String>),
     FunctionArgumentMismatch(String, Vec<String>, Vec<static_analyzer::Type>),
     CannotCallNonFunction,
+    FeatureNotImplemented(String),
 }
 
 impl std::fmt::Display for StaticAnalyzerErrorType {
@@ -80,6 +81,13 @@ impl std::fmt::Display for StaticAnalyzerErrorType {
                 )
             }
             ET::CannotCallNonFunction => write!(f, "Cannot call non-function"),
+            ET::FeatureNotImplemented(feature) => {
+                write!(
+                    f,
+                    "Feature '{}' not implemented yet for static_analyzer :(",
+                    feature
+                )
+            }
         }
     }
 }
@@ -122,6 +130,7 @@ pub enum AstErrorType {
     // e.g. `value.`
     NoPropertyOnAccess,
     UnexpectedToken(lexer::TokenType),
+    FeatureNotImplemented(String),
 }
 
 impl std::fmt::Display for AstErrorType {
@@ -147,6 +156,9 @@ impl std::fmt::Display for AstErrorType {
             }
             ET::EmptyExpression => write!(f, "Empty expression"),
             ET::NoPropertyOnAccess => write!(f, "No property after '.' when accessing property"),
+            ET::FeatureNotImplemented(feature) => {
+                write!(f, "Feature '{}' not implemented yet for ast :(", feature)
+            }
         }
     }
 }
