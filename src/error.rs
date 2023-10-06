@@ -1,19 +1,90 @@
 use crate::*;
 
-#[derive(Debug)]
-pub enum StaticAnalyzerErrorType {}
+#[derive(Debug, Clone)]
+pub enum StaticAnalyzerErrorType {
+    TypeMismatch(
+        lexer::TokenType,
+        static_analyzer::Type,
+        static_analyzer::Type,
+    ),
+    OperationNotSupportedNeg(static_analyzer::Type),
+    OperationNotSupportedNot(static_analyzer::Type),
+    OperationNotSupported(lexer::TokenType, static_analyzer::Type),
+    VariableNotDefined(String, Vec<String>),
+    FunctionNotDefined(String, Vec<String>),
+    FunctionArgumentMismatch(String, Vec<String>, Vec<static_analyzer::Type>),
+    CannotCallNonFunction,
+}
 
 impl std::fmt::Display for StaticAnalyzerErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use StaticAnalyzerErrorType as ET;
 
         match self {
-            _ => todo!(),
+            ET::TypeMismatch(token_type, left, right) => {
+                write!(
+                    f,
+                    "Type mismatch for token '{}': {} != {}",
+                    token_type, left, right
+                )
+            }
+            ET::OperationNotSupportedNeg(value) => {
+                write!(f, "Negation is not supported for type '{}'", value)
+            }
+            ET::OperationNotSupportedNot(value) => {
+                write!(f, "Not is not supported for type '{}'", value)
+            }
+            ET::OperationNotSupported(token_type, value) => {
+                write!(f, "Cannot use '{}' for type '{}'", token_type, value)
+            }
+            ET::VariableNotDefined(name, ns) => {
+                let variable_name = {
+                    if ns.len() != 0 {
+                        format!("{}::{}", ns.join("::"), name)
+                    } else {
+                        name.clone()
+                    }
+                };
+
+                write!(f, "Variable '{}' is not declared", variable_name)
+            }
+            ET::FunctionNotDefined(name, ns) => {
+                let function_name = {
+                    if ns.len() != 0 {
+                        format!("{}::{}", ns.join("::"), name)
+                    } else {
+                        name.clone()
+                    }
+                };
+
+                write!(f, "Function '{}' is not declared", function_name)
+            }
+            ET::FunctionArgumentMismatch(name, ns, args) => {
+                let function_name = {
+                    if ns.len() != 0 {
+                        format!("{}::{}", ns.join("::"), name)
+                    } else {
+                        name.clone()
+                    }
+                };
+
+                write!(
+                    f,
+                    "Function '{}' does not have an overload: {}({})",
+                    function_name,
+                    function_name,
+                    args.iter()
+                        .map(|arg| format!("{}", arg))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            ET::CannotCallNonFunction => write!(f, "Cannot call non-function"),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LexerErrorType {
     UnexpectedSymbol(String),
     InvalidNumber(String),
@@ -32,7 +103,7 @@ impl std::fmt::Display for LexerErrorType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AstErrorType {
     /// ---- Expression ----
     UnexpectedCloseParen,
@@ -80,10 +151,10 @@ impl std::fmt::Display for AstErrorType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error<T>
 where
-    T: Sized + std::fmt::Display + std::fmt::Debug,
+    T: Sized + std::fmt::Display + std::fmt::Debug + Clone,
 {
     error_type: T,
     cl_start: usize,
@@ -94,11 +165,11 @@ where
     ln_end: usize,
 }
 
-impl<T> std::error::Error for Error<T> where T: Sized + std::fmt::Display + std::fmt::Debug {}
+impl<T> std::error::Error for Error<T> where T: Sized + Clone + std::fmt::Display + std::fmt::Debug {}
 
 impl<T> Error<T>
 where
-    T: Sized + std::fmt::Display + std::fmt::Debug,
+    T: Sized + std::fmt::Display + std::fmt::Debug + Clone,
 {
     pub fn new(
         error_type: T,
@@ -132,7 +203,7 @@ where
 
 impl<T> cl_ln::ClLn for Error<T>
 where
-    T: Sized + std::fmt::Display + std::fmt::Debug,
+    T: Sized + std::fmt::Display + std::fmt::Debug + Clone,
 {
     fn cl_start(&self) -> usize {
         self.cl_start
@@ -153,7 +224,7 @@ where
 
 impl<T> std::fmt::Display for Error<T>
 where
-    T: Sized + std::fmt::Display + std::fmt::Debug,
+    T: Sized + std::fmt::Display + std::fmt::Debug + Clone,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let cl = {
