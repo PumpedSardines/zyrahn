@@ -1,3 +1,5 @@
+//! The abstract syntax tree generator for zyrahn.
+
 use crate::*;
 
 pub mod node;

@@ -1,4 +1,13 @@
-use std::collections::HashMap;
+//! Syntax tree static analyzer.
+//!
+//! This module is responsible for checking the syntax tree for errors that can be caught at compile
+//! time. This includes type checking, variable/function usage, etc.
+//!
+//! # Examples
+//! ```
+//! 3 + 4 // Ok
+//! 3 + "4" // Error
+//! ```
 
 use crate::*;
 
