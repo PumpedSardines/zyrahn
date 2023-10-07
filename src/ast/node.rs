@@ -126,7 +126,7 @@ pub mod expression {
     }
 }
 
-mod block {
+pub mod block {
     use super::*;
 
     node_macro! {
