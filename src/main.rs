@@ -1,6 +1,6 @@
 fn compile(
     code: &str,
-) -> Result<zyrahn::ast::node::expression::All, Vec<Box<dyn std::error::Error>>> {
+) -> Result<Vec<zyrahn::ast::node::block::All>, Vec<Box<dyn std::error::Error>>> {
     let tokens = zyrahn::lexer::tokenize(code);
     if let Err(e) = &tokens {
         return Err(vec![Box::new(e.clone())]);

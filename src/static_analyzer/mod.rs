@@ -18,7 +18,7 @@ pub use r#type::Type;
 pub use scope::Scope;
 
 pub fn check(
-    tree: &ast::node::expression::All,
+    tree: &Vec<ast::node::block::All>,
 ) -> Result<(), Vec<error::Error<error::StaticAnalyzerErrorType>>> {
     let mut scope = Scope::new(None);
 
@@ -27,7 +27,7 @@ pub fn check(
     scope.set_function("add", vec![Type::Integer, Type::Integer], Type::Integer);
     scope.set_function("add", vec![Type::Float], Type::Integer);
 
-    expression::eval_type(tree, &scope)?;
+    // expression::eval_type(tree, &scope)?;
 
     Ok(())
 }

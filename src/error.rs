@@ -129,8 +129,16 @@ pub enum AstErrorType {
     // When a property is being accessed, but no property key is found
     // e.g. `value.`
     NoPropertyOnAccess,
-    UnexpectedToken(lexer::TokenType),
     FeatureNotImplemented(String),
+
+    /// ---- Block ----
+    MissingSemicolon,
+    MissingIdentifier,
+    StatementEndEarly,
+
+    /// ------ Generic error -------
+    UnexpectedToken(lexer::TokenType),
+    UnexpectedTokenExpected(lexer::TokenType, lexer::TokenType),
 }
 
 impl std::fmt::Display for AstErrorType {
@@ -145,6 +153,11 @@ impl std::fmt::Display for AstErrorType {
             ET::CurlyNotClosed => write!(f, "Curly bracket not closed"),
             ET::ParenNotClosed => write!(f, "Parenthesis not closed"),
             ET::UnexpectedToken(token_type) => write!(f, "Unexpected token '{}'", token_type),
+            ET::UnexpectedTokenExpected(token_type, expected) => write!(
+                f,
+                "Unexpected token '{}', expected '{}'",
+                token_type, expected
+            ),
             ET::UnexpectedExpression => write!(f, "Unexpected expression"),
             ET::UnclosedExpression => write!(f, "Unclosed expression"),
             ET::CannotPerformOperationOnEmpty(token_type) => {
@@ -159,6 +172,9 @@ impl std::fmt::Display for AstErrorType {
             ET::FeatureNotImplemented(feature) => {
                 write!(f, "Feature '{}' not implemented yet for ast :(", feature)
             }
+            ET::MissingSemicolon => write!(f, "Missing semicolon"),
+            ET::MissingIdentifier => write!(f, "Missing identifier"),
+            ET::StatementEndEarly => write!(f, "Statement ended early"),
         }
     }
 }
