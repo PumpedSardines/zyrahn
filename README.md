@@ -9,7 +9,7 @@ fnc main() {
     var input_str: str = "3";
     var output_int: int = 0;
 
-    if !std::str_to_int(input_str, output_int) {
+    if !std::parse_str(input_str, output_int) {
         std::panic("Could not parse input_str")
     }
 
@@ -20,7 +20,7 @@ fnc main() {
     );
 }
 
-fnc sum(a: int, b: int) -> in {
+fnc sum(a: int, b: int) -> int {
     ret a + b;
 }
 ```
