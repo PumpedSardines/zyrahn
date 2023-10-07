@@ -129,7 +129,7 @@ impl std::fmt::Display for TokenType {
 
 impl TokenType {
     /// Returns if it's the same token type, ignoring the value
-    fn shallow_eq(&self, other: &TokenType) -> bool {
+    pub fn shallow_eq(&self, other: &TokenType) -> bool {
         match self {
             TokenType::Identifier(_) => match other {
                 TokenType::Identifier(_) => true,
