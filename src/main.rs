@@ -1,13 +1,15 @@
-fn compile(
-    code: &str,
-) -> Result<Vec<zyrahn::ast::node::block::All>, Vec<Box<dyn std::error::Error>>> {
-    let tokens = zyrahn::lexer::tokenize(code);
+const STD_LIBRARY: &str = include_str!("./std.zy");
+
+fn compile(code: &str) -> Result<String, Vec<Box<dyn std::error::Error>>> {
+    let code = format!("{}\n\n{}", code, STD_LIBRARY);
+
+    let tokens = zyrahn::lexer::tokenize(&code);
     if let Err(e) = &tokens {
         return Err(vec![Box::new(e.clone())]);
     }
     let tokens = tokens.unwrap();
 
-    let ast = zyrahn::ast::gen(&tokens);
+    let ast = zyrahn::parser::gen(&tokens);
     if let Err(e) = &ast {
         return Err(vec![Box::new(e.clone())]);
     }
@@ -21,7 +23,7 @@ fn compile(
         return Err(out_errs);
     }
 
-    Ok(ast)
+    Ok(zyrahn::compiler::javascript::compile(&ast))
 }
 
 fn main() {
@@ -32,12 +34,12 @@ fn main() {
         std::process::exit(1);
     }
 
-    let ast = compile(&args[1]).unwrap_or_else(|errs| {
+    let js = compile(&args[1]).unwrap_or_else(|errs| {
         for e in errs {
             println!("{}", e);
         }
         std::process::exit(1);
     });
 
-    println!("{:#?}", ast);
+    println!("{:#?}", js);
 }

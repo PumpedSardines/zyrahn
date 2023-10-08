@@ -9,25 +9,26 @@
 //! 3 + "4" // Error
 //! ```
 
-use crate::*;
+use crate::{parser::node::Node, *};
 
 mod expression;
 mod scope;
-mod r#type;
-pub use r#type::Type;
+use cl_ln::ClLn;
 pub use scope::Scope;
+mod block;
 
-pub fn check(
-    tree: &Vec<ast::node::block::All>,
-) -> Result<(), Vec<error::Error<error::StaticAnalyzerErrorType>>> {
+pub fn evaluate(
+    tree: &Vec<Node<parser::node::block::All<Node<parser::node::expression::All>>>>,
+) -> Result<
+    parser::node::block::All<parser::node::expression::AllWithType>,
+    Vec<error::Error<error::StaticAnalyzerErrorType>>,
+> {
     let mut scope = Scope::new(None);
+    let block_eval = block::check(tree, &mut scope);
 
-    scope.set_variable("a", Type::Integer);
-    scope.set_variable("b", Type::Integer);
-    scope.set_function("add", vec![Type::Integer, Type::Integer], Type::Integer);
-    scope.set_function("add", vec![Type::Float], Type::Integer);
+    if let Err(errs) = block_eval {
+        return Err(errs);
+    }
 
-    // expression::eval_type(tree, &scope)?;
-
-    Ok(())
+    Ok(block_eval.unwrap())
 }

@@ -1,12 +1,12 @@
 //! An internal representation of a token when evaluating an expression
 //! Used to combine already evaluated expressions with tokens that are not yet evaluated
 
-use crate::*;
+use crate::{parser::node::Node, *};
 
 #[derive(Debug, Clone)]
 pub(super) enum ExpressionToken {
     Token(lexer::Token),
-    Expression(ast::node::expression::All),
+    Expression(Node<parser::node::expression::All>),
 }
 
 impl cl_ln::ClLn for ExpressionToken {

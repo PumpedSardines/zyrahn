@@ -1,5 +1,5 @@
 use super::*;
-use ast::node::expression;
+use parser::node::expression;
 
 const ORDER_OF_OPERATIONS: &'static [&'static [lexer::TokenType]] = {
     use lexer::TokenType::*;
@@ -41,7 +41,7 @@ fn is_op(token_type: &lexer::TokenType) -> bool {
 /// single_data_unit parsing
 pub(super) fn gen(
     tokens: &[ExpressionToken],
-) -> Result<expression::All, error::Error<error::AstErrorType>> {
+) -> Result<Node<expression::All>, error::Error<error::ParserErrorType>> {
     for order_of_operations in ORDER_OF_OPERATIONS.iter().rev() {
         let itr = tokens.iter();
 
@@ -77,11 +77,11 @@ pub(super) fn gen(
                     return Err(error::Error::from_cl_ln(
                         {
                             if curly_count < 0 {
-                                error::AstErrorType::UnexpectedCloseCurly
+                                error::ParserErrorType::UnexpectedCloseCurly
                             } else if square_count < 0 {
-                                error::AstErrorType::UnexpectedCloseSquare
+                                error::ParserErrorType::UnexpectedCloseSquare
                             } else {
-                                error::AstErrorType::UnexpectedCloseParen
+                                error::ParserErrorType::UnexpectedCloseParen
                             }
                         },
                         token,
@@ -100,7 +100,7 @@ pub(super) fn gen(
                         ($s:ident::$x:ident) => {{
                             if left.len() == 0 || right.len() == 0 {
                                 return Err(error::Error::from_cl_ln(
-                                    error::AstErrorType::CannotPerformOperationOnEmpty(
+                                    error::ParserErrorType::CannotPerformOperationOnEmpty(
                                         lexer::TokenType::$x,
                                     ),
                                     token,
@@ -112,14 +112,15 @@ pub(super) fn gen(
 
                             let cl_ln = cl_ln::combine(&tokens);
 
-                            expression::All::$s {
-                                value: expression::$s::$x {
-                                    left: Box::new(left),
-                                    right: Box::new(right),
-                                    cl_ln,
+                            Node::from_cl_ln(
+                                expression::All::$s {
+                                    value: expression::$s::$x {
+                                        left: Box::new(left),
+                                        right: Box::new(right),
+                                    },
                                 },
-                                cl_ln,
-                            }
+                                &cl_ln,
+                            )
                         }};
                         ($x:ident) => {
                             lexer::TokenType::$x

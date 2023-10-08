@@ -1,6 +1,5 @@
-use super::*;
+use super::{node::Node, *};
 use cl_ln::ClLn;
-use node::block;
 
 mod r#type;
 mod var_dec;
@@ -15,7 +14,12 @@ mod var_dec;
 ///
 /// }
 /// ```
-pub fn gen(tokens: &[lexer::Token]) -> Result<Vec<block::All>, error::Error<error::AstErrorType>> {
+pub fn gen(
+    tokens: &[lexer::Token],
+) -> Result<
+    Vec<Node<node::block::All<Node<node::expression::All>>>>,
+    error::Error<error::ParserErrorType>,
+> {
     if tokens.len() == 0 {
         return Ok(vec![]);
     }
@@ -36,7 +40,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<Vec<block::All>, error::Error<erro
             }
 
             return Err(error::Error::from_cl_ln(
-                error::AstErrorType::MissingSemicolon,
+                error::ParserErrorType::MissingSemicolon,
                 &tokens[0],
             ));
         }
@@ -52,10 +56,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<Vec<block::All>, error::Error<erro
 
                     rest.insert(
                         0,
-                        block::All::Expression {
-                            value: expression,
-                            cl_ln,
-                        },
+                        Node::from_cl_ln(node::block::All::Expression { value: expression }, cl_ln),
                     );
 
                     return Ok(rest);
@@ -63,7 +64,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<Vec<block::All>, error::Error<erro
             }
 
             return Err(error::Error::from_cl_ln(
-                error::AstErrorType::MissingSemicolon,
+                error::ParserErrorType::MissingSemicolon,
                 &tokens[0],
             ));
         }

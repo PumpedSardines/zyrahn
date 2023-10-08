@@ -257,6 +257,9 @@ fn parse_token(
             "false" => TokenType::BooleanLiteral(false),
             "out" => TokenType::Out,
             "ns" => TokenType::Namespace,
+            "__COMPILER_SET_CUSTOM_PRE_DEFINED" => {
+                TokenType::CompilerSetCustomCodePreDefined("".to_string())
+            }
             string => TokenType::Identifier(string.to_string()),
         },
         Eval::Symbol => {

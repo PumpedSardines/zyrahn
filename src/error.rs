@@ -2,19 +2,17 @@ use crate::*;
 
 #[derive(Debug, Clone)]
 pub enum StaticAnalyzerErrorType {
-    TypeMismatch(
-        lexer::TokenType,
-        static_analyzer::Type,
-        static_analyzer::Type,
-    ),
-    OperationNotSupportedNeg(static_analyzer::Type),
-    OperationNotSupportedNot(static_analyzer::Type),
-    OperationNotSupported(lexer::TokenType, static_analyzer::Type),
+    TypeMismatchOp(lexer::TokenType, common::Type, common::Type),
+    TypeMismatchAssign(common::Type, common::Type),
+    OperationNotSupportedNeg(common::Type),
+    OperationNotSupportedNot(common::Type),
+    OperationNotSupported(lexer::TokenType, common::Type),
     VariableNotDefined(String, Vec<String>),
     FunctionNotDefined(String, Vec<String>),
-    FunctionArgumentMismatch(String, Vec<String>, Vec<static_analyzer::Type>),
+    FunctionArgumentMismatch(String, Vec<String>, Vec<common::Type>),
     CannotCallNonFunction,
     FeatureNotImplemented(String),
+    CompilerCustomCodePreDefined,
 }
 
 impl std::fmt::Display for StaticAnalyzerErrorType {
@@ -22,7 +20,13 @@ impl std::fmt::Display for StaticAnalyzerErrorType {
         use StaticAnalyzerErrorType as ET;
 
         match self {
-            ET::TypeMismatch(token_type, left, right) => {
+            ET::CompilerCustomCodePreDefined => {
+                write!(f, "Compiler set custom code pre-defined error")
+            }
+            ET::TypeMismatchAssign(left, right) => {
+                write!(f, "Type mismatch for assignment: {} != {}", left, right)
+            }
+            ET::TypeMismatchOp(token_type, left, right) => {
                 write!(
                     f,
                     "Type mismatch for token '{}': {} != {}",
@@ -112,7 +116,7 @@ impl std::fmt::Display for LexerErrorType {
 }
 
 #[derive(Debug, Clone)]
-pub enum AstErrorType {
+pub enum ParserErrorType {
     /// ---- Expression ----
     UnexpectedCloseParen,
     UnexpectedCloseCurly,
@@ -131,6 +135,8 @@ pub enum AstErrorType {
     NoPropertyOnAccess,
     FeatureNotImplemented(String),
 
+    CompilerCustomCodePreDefined,
+
     /// ---- Block ----
     MissingSemicolon,
     MissingIdentifier,
@@ -141,9 +147,9 @@ pub enum AstErrorType {
     UnexpectedTokenExpected(lexer::TokenType, lexer::TokenType),
 }
 
-impl std::fmt::Display for AstErrorType {
+impl std::fmt::Display for ParserErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use AstErrorType as ET;
+        use ParserErrorType as ET;
 
         match self {
             ET::UnexpectedCloseParen => write!(f, "Unexpected close ')'"),
@@ -153,6 +159,9 @@ impl std::fmt::Display for AstErrorType {
             ET::CurlyNotClosed => write!(f, "Curly bracket not closed"),
             ET::ParenNotClosed => write!(f, "Parenthesis not closed"),
             ET::UnexpectedToken(token_type) => write!(f, "Unexpected token '{}'", token_type),
+            ET::CompilerCustomCodePreDefined => {
+                write!(f, "Compiler set custom code pre-defined error")
+            }
             ET::UnexpectedTokenExpected(token_type, expected) => write!(
                 f,
                 "Unexpected token '{}', expected '{}'",

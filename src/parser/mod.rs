@@ -3,12 +3,16 @@
 use crate::*;
 
 pub mod node;
+use node::Node;
 
 mod block;
 mod expression;
 
 pub fn gen(
     tokens: &Vec<lexer::Token>,
-) -> Result<Vec<node::block::All>, error::Error<error::AstErrorType>> {
+) -> Result<
+    Vec<Node<node::block::All<Node<node::expression::All>>>>,
+    error::Error<error::ParserErrorType>,
+> {
     block::gen(&tokens)
 }

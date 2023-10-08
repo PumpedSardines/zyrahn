@@ -1,129 +1,201 @@
 use crate::*;
-use ast::node::*;
+use cl_ln::ClLn;
+use parser::node::*;
 
-pub fn eval_type(
-    tree: &expression::All,
+/// Calculates what type both expressions have and return errors if they don't match
+fn calc_type(
+    left: &Node<expression::All>,
+    right: &Node<expression::All>,
     scope: &static_analyzer::Scope,
-) -> Result<static_analyzer::Type, Vec<error::Error<error::StaticAnalyzerErrorType>>> {
-    // This should probably be a function lol (I'm lazy)
-    macro_rules! type_check {
-        (same ret, $operation:ident, $r:ident, $l:ident, $($supported_type:ident),+) => {{
-            let left = eval_type(&$l, scope);
-            let right = eval_type(&$r, scope);
+) -> Result<common::Type, Vec<error::Error<error::StaticAnalyzerErrorType>>> {
+    let left = evaluate(left, scope);
+    let right = evaluate(right, scope);
 
-            if left.is_err() && right.is_err() {
-                return Err(left.unwrap_err().into_iter().chain(right.unwrap_err()).collect());
-            }
+    if left.is_err() && right.is_err() {
+        return Err(left
+            .unwrap_err()
+            .into_iter()
+            .chain(right.unwrap_err())
+            .collect());
+    }
 
-            if left.is_err() || right.is_err() {
-                let (not_error_type, prev_err) = if left.is_err() {
-                    (right.clone().unwrap(), left.clone().unwrap_err())
-                } else {
-                    (left.clone().unwrap(), right.clone().unwrap_err())
-                };
+    if left.is_err() || right.is_err() {
+        let (not_error_type, prev_err) = if left.is_err() {
+            (right.clone().unwrap().node.ty(), left.clone().unwrap_err())
+        } else {
+            (left.clone().unwrap().node.ty(), right.clone().unwrap_err())
+        };
 
-                if $(not_error_type != static_analyzer::Type::$supported_type &&)+ true {
-                    let err = vec![error::Error::from_cl_ln(
-                            error::StaticAnalyzerErrorType::OperationNotSupported(
-                                lexer::TokenType::$operation,
-                                not_error_type,
-                            ),
-                            tree,
-                        )];
-                    return Err(prev_err.into_iter().chain(err).collect());
-                }
-            }
+        let err = vec![error::Error::from_cl_ln(
+            error::StaticAnalyzerErrorType::OperationNotSupported(
+                lexer::TokenType::Add,
+                not_error_type,
+            ),
+            &left.unwrap_err().first().unwrap().cl_ln(),
+        )];
+        return Err(prev_err.into_iter().chain(err).collect());
+    }
 
-            let left = left?;
-            let right = right?;
+    let left = left?;
+    let right = right?;
 
-            if left == right {
-                if $(left != static_analyzer::Type::$supported_type &&)+ true {
-                    return Err(vec![error::Error::from_cl_ln(
-                        error::StaticAnalyzerErrorType::OperationNotSupported(
-                            lexer::TokenType::$operation,
-                            left,
-                        ),
-                        tree,
-                    )]);
-                }
+    let left_ty = left.node.ty();
+    let right_ty = right.node.ty();
 
-                Ok(left)
-            } else {
-                Err(vec![error::Error::from_cl_ln(
-                    error::StaticAnalyzerErrorType::TypeMismatch(
-                        lexer::TokenType::$operation,
-                        left,
-                        right,
-                    ),
-                    tree,
-                )])
-            }
-        }};
-        ($rtype:ident, $operation:ident, $r:ident, $l:ident, $($supported_type:ident),+) => {{
-            let left = eval_type(&$l, scope)?;
-            let right = eval_type(&$r, scope)?;
+    if left_ty == right_ty {
+        Ok(left_ty)
+    } else {
+        Err(vec![error::Error::from_cl_ln(
+            error::StaticAnalyzerErrorType::TypeMismatchOp(
+                lexer::TokenType::Add,
+                left_ty,
+                right_ty,
+            ),
+            &left.cl_ln(),
+        )])
+    }
+}
 
-            if left == right {
-                if $(left != static_analyzer::Type::$supported_type &&)+ true {
-                    return Err(vec![error::Error::from_cl_ln(
-                        error::StaticAnalyzerErrorType::OperationNotSupported(
-                            lexer::TokenType::$operation,
-                            left,
-                        ),
-                        tree,
-                    )]);
-                }
-
-                Ok(static_analyzer::Type::$rtype)
-            } else {
-                Err(vec![error::Error::from_cl_ln(
-                    error::StaticAnalyzerErrorType::TypeMismatch(
-                        lexer::TokenType::$operation,
-                        left,
-                        right,
-                    ),
-                    tree,
-                )])
-            }
+pub fn evaluate(
+    node: &Node<expression::All>,
+    scope: &static_analyzer::Scope,
+) -> Result<Node<expression::AllWithType>, Vec<error::Error<error::StaticAnalyzerErrorType>>> {
+    macro_rules! with_type {
+        ($scope:ident::$name:ident, $l:expr, $r:expr, $ty:expr) => {{
+            Node::from_cl_ln(
+                expression::AllWithType::$scope {
+                    value: expression::$scope::$name {
+                        left: Box::new($l),
+                        right: Box::new($r),
+                    },
+                    ty: $ty,
+                },
+                node,
+            )
         }};
     }
 
-    match tree {
+    macro_rules! check_type {
+        ($opt:tt, $ty:expr, $allowed_ty:expr, $if_allowed:block) => {
+            if $allowed_ty.contains(&$ty) {
+                $if_allowed
+            } else {
+                Err(vec![error::Error::from_cl_ln(
+                    error::StaticAnalyzerErrorType::OperationNotSupported(
+                        lexer::TokenType::$opt,
+                        $ty,
+                    ),
+                    node,
+                )])
+            }
+        };
+    }
+
+    match node.node {
+        expression::All::CompilerCustomCodePreDefined { .. } => {
+            return Err(vec![error::Error::from_cl_ln(
+                error::StaticAnalyzerErrorType::CompilerCustomCodePreDefined,
+                node,
+            )])
+        }
         expression::All::SingleDataUnit { value, .. } => match value {
             expression::SingleDataUnit::Literal { literal, .. } => match literal {
-                expression::Literal::Integer { .. } => Ok(static_analyzer::Type::Integer),
-                expression::Literal::Float { .. } => Ok(static_analyzer::Type::Float),
-                expression::Literal::String { .. } => Ok(static_analyzer::Type::String),
-                expression::Literal::Boolean { .. } => Ok(static_analyzer::Type::Boolean),
+                expression::Literal::Integer { value } => Ok(Node::from_cl_ln(
+                    expression::AllWithType::SingleDataUnit {
+                        value: expression::SingleDataUnit::Literal {
+                            literal: expression::Literal::Integer { value },
+                        },
+                        ty: common::Type::Integer,
+                    },
+                    node,
+                )),
+                expression::Literal::Float { value } => Ok(Node::from_cl_ln(
+                    expression::AllWithType::SingleDataUnit {
+                        value: expression::SingleDataUnit::Literal {
+                            literal: expression::Literal::Float { value },
+                        },
+                        ty: common::Type::Float,
+                    },
+                    node,
+                )),
+                expression::Literal::String { value } => Ok(Node::from_cl_ln(
+                    expression::AllWithType::SingleDataUnit {
+                        value: expression::SingleDataUnit::Literal {
+                            literal: expression::Literal::String { value },
+                        },
+                        ty: common::Type::String,
+                    },
+                    node,
+                )),
+                expression::Literal::Boolean { value } => Ok(Node::from_cl_ln(
+                    expression::AllWithType::SingleDataUnit {
+                        value: expression::SingleDataUnit::Literal {
+                            literal: expression::Literal::Boolean { value },
+                        },
+                        ty: common::Type::Boolean,
+                    },
+                    node,
+                )),
             },
             expression::SingleDataUnit::FunctionCall {
                 function,
                 arguments,
                 ..
             } => match function.as_ref() {
-                expression::All::SingleDataUnit { value, .. } => match value {
+                Node {
+                    node: expression::All::SingleDataUnit { value, .. },
+                    ..
+                } => match value {
                     expression::SingleDataUnit::Identifier {
                         namespace,
                         identifier,
-                        cl_ln,
                     } => {
                         let args = arguments
                             .iter()
-                            .map(|arg| eval_type(arg, scope))
-                            .collect::<Result<Vec<_>, _>>()?;
+                            .map(|(is_out, arg)| {
+                                let arg = evaluate(arg, scope);
 
-                        if let Some(ret_type) = scope.get_function(namespace, identifier, &args) {
-                            Ok(ret_type.clone())
+                                if arg.is_err() {
+                                    return Err(arg.unwrap_err());
+                                } else {
+                                    Ok((is_out.clone(), arg.unwrap()))
+                                }
+                            })
+                            .collect::<Result<Vec<(bool, Node<expression::AllWithType>)>, _>>()?;
+
+                        let args_types = args.iter().map(|(_, arg)| arg.node.ty()).collect();
+
+                        if let Some(ret_type) =
+                            scope.get_function(namespace, identifier, &args_types)
+                        {
+                            Ok(Node::from_cl_ln(
+                                expression::AllWithType::SingleDataUnit {
+                                    value: expression::SingleDataUnit::FunctionCall {
+                                        function: Box::new(Node::from_cl_ln(
+                                            expression::AllWithType::SingleDataUnit {
+                                                value: expression::SingleDataUnit::Identifier {
+                                                    namespace: namespace.clone(),
+                                                    identifier: identifier.clone(),
+                                                },
+                                                ty: common::Type::Never,
+                                            },
+                                            node,
+                                        )),
+                                        arguments: args,
+                                    },
+                                    ty: ret_type.clone(),
+                                },
+                                node,
+                            ))
                         } else {
                             if scope.has_function(namespace, identifier) {
                                 return Err(vec![error::Error::from_cl_ln(
                                     error::StaticAnalyzerErrorType::FunctionArgumentMismatch(
                                         identifier.clone(),
                                         namespace.clone(),
-                                        args.clone(),
+                                        args_types,
                                     ),
-                                    cl_ln,
+                                    node,
                                 )]);
                             }
 
@@ -132,21 +204,21 @@ pub fn eval_type(
                                     identifier.clone(),
                                     namespace.clone(),
                                 ),
-                                cl_ln,
+                                node,
                             )])
                         }
                     }
                     _ => {
                         return Err(vec![error::Error::from_cl_ln(
                             error::StaticAnalyzerErrorType::CannotCallNonFunction,
-                            tree,
+                            node,
                         )])
                     }
                 },
                 _ => {
                     return Err(vec![error::Error::from_cl_ln(
                         error::StaticAnalyzerErrorType::CannotCallNonFunction,
-                        tree,
+                        node,
                     )])
                 }
             },
@@ -155,22 +227,31 @@ pub fn eval_type(
                 namespace,
                 ..
             } => {
-                if let Some(value) = scope.get_variable(namespace, identifier) {
-                    Ok(value.clone())
+                if let Some(value) = scope.get_variable(&namespace, &identifier) {
+                    Ok(Node::from_cl_ln(
+                        expression::AllWithType::SingleDataUnit {
+                            value: expression::SingleDataUnit::Identifier {
+                                identifier: identifier.clone(),
+                                namespace: namespace.clone(),
+                            },
+                            ty: value.clone(),
+                        },
+                        node,
+                    ))
                 } else {
                     Err(vec![error::Error::from_cl_ln(
                         error::StaticAnalyzerErrorType::VariableNotDefined(
                             identifier.clone(),
                             namespace.clone(),
                         ),
-                        tree,
+                        node,
                     )])
                 }
             }
             expression::SingleDataUnit::ArrayInit { .. } => {
                 return Err(vec![error::Error::from_cl_ln(
                     error::StaticAnalyzerErrorType::FeatureNotImplemented("Array init".to_string()),
-                    tree,
+                    node,
                 )])
             }
             expression::SingleDataUnit::StructInit { .. } => {
@@ -178,7 +259,7 @@ pub fn eval_type(
                     error::StaticAnalyzerErrorType::FeatureNotImplemented(
                         "Struct init".to_string(),
                     ),
-                    tree,
+                    node,
                 )])
             }
             expression::SingleDataUnit::ArrayAccess { .. } => {
@@ -186,7 +267,7 @@ pub fn eval_type(
                     error::StaticAnalyzerErrorType::FeatureNotImplemented(
                         "Array access".to_string(),
                     ),
-                    tree,
+                    node,
                 )])
             }
             expression::SingleDataUnit::PropertyAccess { .. } => {
@@ -194,81 +275,243 @@ pub fn eval_type(
                     error::StaticAnalyzerErrorType::FeatureNotImplemented(
                         "Property access".to_string(),
                     ),
-                    tree,
+                    node,
                 )])
             }
         },
         expression::All::Cmp { value, .. } => match value {
             expression::Cmp::Equal { left, right, .. } => {
-                return type_check!(Boolean, Equal, left, right, Integer, Float, String, Boolean);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(
+                    Equal,
+                    ty,
+                    vec![
+                        common::Type::Integer,
+                        common::Type::Float,
+                        common::Type::String,
+                        common::Type::Boolean
+                    ],
+                    {
+                        let left = evaluate(&left, scope)?;
+                        let right = evaluate(&right, scope)?;
+
+                        Ok(with_type!(Cmp::Equal, left, right, ty))
+                    }
+                )
             }
             expression::Cmp::NotEqual { left, right, .. } => {
-                return type_check!(
-                    Boolean, NotEqual, left, right, Integer, Float, String, Boolean
-                );
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(
+                    NotEqual,
+                    ty,
+                    vec![
+                        common::Type::Integer,
+                        common::Type::Float,
+                        common::Type::String,
+                        common::Type::Boolean
+                    ],
+                    {
+                        let left = evaluate(&left, scope)?;
+                        let right = evaluate(&right, scope)?;
+
+                        Ok(with_type!(Cmp::NotEqual, left, right, ty))
+                    }
+                )
             }
             expression::Cmp::LessThan { left, right, .. } => {
-                return type_check!(Boolean, LessThan, left, right, Integer, Float);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(
+                    LessThan,
+                    ty,
+                    vec![common::Type::Integer, common::Type::Float],
+                    {
+                        let left = evaluate(&left, scope)?;
+                        let right = evaluate(&right, scope)?;
+
+                        Ok(with_type!(Cmp::LessThan, left, right, ty))
+                    }
+                )
             }
             expression::Cmp::LessThanOrEqual { left, right, .. } => {
-                return type_check!(Boolean, LessThanOrEqual, left, right, Integer, Float);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(
+                    LessThanOrEqual,
+                    ty,
+                    vec![common::Type::Integer, common::Type::Float],
+                    {
+                        let left = evaluate(&left, scope)?;
+                        let right = evaluate(&right, scope)?;
+
+                        Ok(with_type!(Cmp::LessThanOrEqual, left, right, ty))
+                    }
+                )
             }
             expression::Cmp::GreaterThan { left, right, .. } => {
-                return type_check!(Boolean, GreaterThan, left, right, Integer, Float);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(
+                    GreaterThan,
+                    ty,
+                    vec![common::Type::Integer, common::Type::Float],
+                    {
+                        let left = evaluate(&left, scope)?;
+                        let right = evaluate(&right, scope)?;
+
+                        Ok(with_type!(Cmp::GreaterThan, left, right, ty))
+                    }
+                )
             }
             expression::Cmp::GreaterThanOrEqual { left, right, .. } => {
-                return type_check!(Boolean, GreaterThanOrEqual, left, right, Integer, Float);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(
+                    GreaterThanOrEqual,
+                    ty,
+                    vec![common::Type::Integer, common::Type::Float],
+                    {
+                        let left = evaluate(&left, scope)?;
+                        let right = evaluate(&right, scope)?;
+
+                        Ok(with_type!(Cmp::GreaterThanOrEqual, left, right, ty))
+                    }
+                )
             }
         },
         expression::All::BooleanLogic { value, .. } => match value {
             expression::BooleanLogic::And { left, right, .. } => {
-                return type_check!(same ret, And, left, right, Boolean);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(And, ty, vec![common::Type::Boolean], {
+                    let left = evaluate(&left, scope)?;
+                    let right = evaluate(&right, scope)?;
+
+                    Ok(with_type!(BooleanLogic::And, left, right, ty))
+                })
             }
             expression::BooleanLogic::Or { left, right, .. } => {
-                return type_check!(same ret, Or, left, right, Boolean);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(Or, ty, vec![common::Type::Boolean], {
+                    let left = evaluate(&left, scope)?;
+                    let right = evaluate(&right, scope)?;
+
+                    Ok(with_type!(BooleanLogic::Or, left, right, ty))
+                })
             }
             expression::BooleanLogic::Not { value, .. } => {
-                let value = eval_type(&value, scope)?;
+                let value = evaluate(&value, scope)?;
+                let ty = value.node.ty();
 
-                if value == static_analyzer::Type::Boolean {
-                    Ok(value)
+                if ty == common::Type::Boolean {
+                    Ok(Node::from_cl_ln(
+                        expression::AllWithType::BooleanLogic {
+                            value: expression::BooleanLogic::Not {
+                                value: Box::new(value),
+                            },
+                            ty,
+                        },
+                        node,
+                    ))
                 } else {
                     Err(vec![error::Error::from_cl_ln(
-                        error::StaticAnalyzerErrorType::OperationNotSupportedNot(value),
-                        tree,
+                        error::StaticAnalyzerErrorType::OperationNotSupportedNot(ty),
+                        node,
                     )])
                 }
             }
         },
         expression::All::Arithmetic { value, .. } => match value {
             expression::Arithmetic::Add { left, right, .. } => {
-                return type_check!(same ret, Add, left, right, Integer, Float, String);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(
+                    Add,
+                    ty,
+                    vec![
+                        common::Type::Integer,
+                        common::Type::Float,
+                        common::Type::String
+                    ],
+                    {
+                        let left = evaluate(&left, scope)?;
+                        let right = evaluate(&right, scope)?;
+
+                        Ok(with_type!(Arithmetic::Add, left, right, ty))
+                    }
+                )
             }
             expression::Arithmetic::Sub { left, right, .. } => {
-                return type_check!(same ret, Sub, left, right, Integer, Float);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(Sub, ty, vec![common::Type::Integer, common::Type::Float], {
+                    let left = evaluate(&left, scope)?;
+                    let right = evaluate(&right, scope)?;
+
+                    Ok(with_type!(Arithmetic::Sub, left, right, ty))
+                })
             }
             expression::Arithmetic::Mul { left, right, .. } => {
-                return type_check!(same ret, Mul, left, right, Integer, Float);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(Mul, ty, vec![common::Type::Integer, common::Type::Float], {
+                    let left = evaluate(&left, scope)?;
+                    let right = evaluate(&right, scope)?;
+
+                    Ok(with_type!(Arithmetic::Mul, left, right, ty))
+                })
             }
             expression::Arithmetic::Div { left, right, .. } => {
-                return type_check!(same ret, Div, left, right, Integer, Float);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(Div, ty, vec![common::Type::Integer, common::Type::Float], {
+                    let left = evaluate(&left, scope)?;
+                    let right = evaluate(&right, scope)?;
+
+                    Ok(with_type!(Arithmetic::Div, left, right, ty))
+                })
             }
             expression::Arithmetic::Mod { left, right, .. } => {
-                return type_check!(same ret, Mod, left, right, Integer, Float);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(Mod, ty, vec![common::Type::Integer, common::Type::Float], {
+                    let left = evaluate(&left, scope)?;
+                    let right = evaluate(&right, scope)?;
+
+                    Ok(with_type!(Arithmetic::Mod, left, right, ty))
+                })
             }
             expression::Arithmetic::Pow { left, right, .. } => {
-                return type_check!(same ret, Pow, left, right, Integer, Float);
+                let ty = calc_type(&left, &right, scope)?;
+
+                check_type!(Pow, ty, vec![common::Type::Integer, common::Type::Float], {
+                    let left = evaluate(&left, scope)?;
+                    let right = evaluate(&right, scope)?;
+
+                    Ok(with_type!(Arithmetic::Pow, left, right, ty))
+                })
             }
             expression::Arithmetic::Neg { value, .. } => {
-                let value = eval_type(&value, scope)?;
+                let value = evaluate(&value, scope)?;
+                let ty = value.node.ty();
 
-                if value == static_analyzer::Type::Integer || value == static_analyzer::Type::Float
-                {
-                    Ok(value)
+                if ty == common::Type::Integer || ty == common::Type::Float {
+                    Ok(Node::from_cl_ln(
+                        expression::AllWithType::Arithmetic {
+                            value: expression::Arithmetic::Neg {
+                                value: Box::new(value),
+                            },
+                            ty,
+                        },
+                        node,
+                    ))
                 } else {
                     Err(vec![error::Error::from_cl_ln(
-                        error::StaticAnalyzerErrorType::OperationNotSupportedNeg(value),
-                        tree,
+                        error::StaticAnalyzerErrorType::OperationNotSupportedNeg(ty),
+                        node,
                     )])
                 }
             }

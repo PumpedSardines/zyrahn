@@ -1,16 +1,15 @@
+use crate::*;
 use std::collections::HashMap;
-
-use super::Type;
 
 pub struct Scope<'a> {
     // This way of doing it might be quite inefficient. Since only variables are allowed in lower
     // scopes. So get_function for example will need to be called recursively until it reaches the
     // top scope.
     parent: Option<&'a Scope<'a>>,
-    variables: HashMap<String, Type>,
+    variables: HashMap<String, common::Type>,
     // Why is the look up for functions a double vector?
     // First vector is function overloads, second vector is the types of the arguments.
-    functions: HashMap<String, Vec<(Vec<Type>, Type)>>,
+    functions: HashMap<String, Vec<(Vec<common::Type>, common::Type)>>,
 }
 
 impl<'a> Scope<'a> {
@@ -22,7 +21,12 @@ impl<'a> Scope<'a> {
         }
     }
 
-    pub fn get_function<'b>(&self, ns: &Vec<String>, name: &str, args: &Vec<Type>) -> Option<Type> {
+    pub fn get_function<'b>(
+        &self,
+        ns: &Vec<String>,
+        name: &str,
+        args: &Vec<common::Type>,
+    ) -> Option<common::Type> {
         let name_with_ns = Scope::combine_ns_name(ns, name);
 
         self.functions
@@ -49,7 +53,7 @@ impl<'a> Scope<'a> {
             })
     }
 
-    pub fn set_function(&mut self, name: &str, args: Vec<Type>, ret_type: Type) {
+    pub fn set_function(&mut self, name: &str, args: Vec<common::Type>, ret_type: common::Type) {
         self.functions
             .entry(name.to_string())
             .or_insert_with(Vec::new)
@@ -66,7 +70,7 @@ impl<'a> Scope<'a> {
                 .map_or(false, |parent| parent.has_function(ns, name))
     }
 
-    pub fn get_variable(&self, ns: &Vec<String>, name: &str) -> Option<&Type> {
+    pub fn get_variable(&self, ns: &Vec<String>, name: &str) -> Option<&common::Type> {
         let name_with_ns = Scope::combine_ns_name(ns, name);
 
         self.variables.get(&name_with_ns).or_else(|| {
@@ -84,7 +88,7 @@ impl<'a> Scope<'a> {
                 .map_or(false, |parent| parent.has_variable(name))
     }
 
-    pub fn set_variable(&mut self, name: &str, value: Type) {
+    pub fn set_variable(&mut self, name: &str, value: common::Type) {
         self.variables.insert(name.to_string(), value);
     }
 

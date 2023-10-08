@@ -5,7 +5,7 @@ mod operations;
 mod single_data_unit;
 use exp_token::*;
 
-use node::expression;
+use node::{expression, Node};
 
 /// The expression parser. An expression is anything that can be evaluated to a single value.
 ///
@@ -15,9 +15,40 @@ use node::expression;
 /// 6 + 8 * 9 - 10;
 /// (my_variable[6 * -(3 + 4)].property + 3) * 4;
 /// ```
-pub fn gen(tokens: &[lexer::Token]) -> Result<expression::All, error::Error<error::AstErrorType>> {
+pub fn gen(
+    tokens: &[lexer::Token],
+) -> Result<Node<expression::All>, error::Error<error::ParserErrorType>> {
     if tokens.len() == 0 {
         panic!("Cannot parse empty expression");
+    }
+
+    if tokens[0]
+        .token_type
+        .shallow_eq(&lexer::TokenType::CompilerSetCustomCodePreDefined(
+            "".to_string(),
+        ))
+    {
+        if tokens.len() != 2 {
+            match &tokens[1].token_type {
+                lexer::TokenType::StringLiteral(s) => {
+                    return Ok(Node::from_cl_ln(
+                        expression::All::CompilerCustomCodePreDefined { value: s.clone() },
+                        &tokens[0],
+                    ));
+                }
+                _ => {
+                    return Err(error::Error::from_cl_ln(
+                        error::ParserErrorType::CompilerCustomCodePreDefined,
+                        &tokens[1],
+                    ));
+                }
+            }
+        }
+
+        return Err(error::Error::from_cl_ln(
+            error::ParserErrorType::CompilerCustomCodePreDefined,
+            &tokens[0],
+        ));
     }
 
     // Since `exp::gen` expects that all parentheses are already calculated, this function will
@@ -50,7 +81,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<expression::All, error::Error<erro
 
                 if p_count < 0 {
                     return Err(error::Error::from_cl_ln(
-                        error::AstErrorType::UnexpectedCloseParen,
+                        error::ParserErrorType::UnexpectedCloseParen,
                         t,
                     ));
                 }
@@ -62,7 +93,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<expression::All, error::Error<erro
 
                     if p_tokens.len() == 0 {
                         return Err(error::Error::from_cl_ln(
-                            error::AstErrorType::EmptyExpression,
+                            error::ParserErrorType::EmptyExpression,
                             &cl_ln::combine(&tokens[p_start.unwrap()..=p_end]),
                         ));
                     }
@@ -102,7 +133,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<expression::All, error::Error<erro
 
     if p_count > 0 {
         return Err(error::Error::from_cl_ln(
-            error::AstErrorType::UnclosedExpression,
+            error::ParserErrorType::UnclosedExpression,
             &tokens[p_start.unwrap()],
         ));
     }

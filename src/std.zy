@@ -1,0 +1,30 @@
+ns std {
+  fnc print(inp: str) {
+    __COMPILER_SET_CUSTOM_PRE_DEFINED "print-str";
+  }
+  fnc print(inp: int) {
+    __COMPILER_SET_CUSTOM_PRE_DEFINED "print-int";
+  }
+  fnc print(inp: flt) {
+    __COMPILER_SET_CUSTOM_PRE_DEFINED "print-flt";
+  }
+  fnc print(inp: bln) {
+    __COMPILER_SET_CUSTOM_PRE_DEFINED "print-bln";
+  }
+
+  fnc parse_str(inp: str, out output: int) -> bool {
+    __COMPILER_SET_CUSTOM_PRE_DEFINED "parse_str-int";
+  }
+  fnc parse_str(inp: str, out output: flt) -> bool {
+    __COMPILER_SET_CUSTOM_PRE_DEFINED "parse_str-flt";
+  }
+
+  ns math {
+    fnc sqrt(inp: flt) -> flt {
+      __COMPILER_SET_CUSTOM_PRE_DEFINED "math::squrt-flt";
+    }
+    fnc sqrt(inp: int) -> int {
+      __COMPILER_SET_CUSTOM_PRE_DEFINED "math::squrt-int";
+    }
+  }
+}

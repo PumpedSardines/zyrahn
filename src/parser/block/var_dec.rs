@@ -1,13 +1,16 @@
 use super::*;
 
-pub fn gen(tokens: &[lexer::Token]) -> Result<block::All, error::Error<error::AstErrorType>> {
+pub fn gen(
+    tokens: &[lexer::Token],
+) -> Result<Node<node::block::All<Node<node::expression::All>>>, error::Error<error::ParserErrorType>>
+{
     if tokens.len() == 0 {
         panic!("var_dec called with no tokens");
     }
 
     if tokens.len() < 6 {
         return Err(error::Error::from_cl_ln(
-            error::AstErrorType::StatementEndEarly,
+            error::ParserErrorType::StatementEndEarly,
             &tokens[0],
         ));
     }
@@ -16,7 +19,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<block::All, error::Error<error::As
         lexer::TokenType::Identifier(s) => s,
         _ => {
             return Err(error::Error::from_cl_ln(
-                error::AstErrorType::MissingIdentifier,
+                error::ParserErrorType::MissingIdentifier,
                 &tokens[0],
             ));
         }
@@ -24,7 +27,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<block::All, error::Error<error::As
 
     if tokens[2].token_type != lexer::TokenType::Colon {
         return Err(error::Error::from_cl_ln(
-            error::AstErrorType::UnexpectedTokenExpected(
+            error::ParserErrorType::UnexpectedTokenExpected(
                 tokens[2].token_type.clone(),
                 lexer::TokenType::Colon,
             ),
@@ -39,7 +42,7 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<block::All, error::Error<error::As
 
             if ty.len() == 0 {
                 return Err(error::Error::from_cl_ln(
-                    error::AstErrorType::UnexpectedToken(lexer::TokenType::Assign),
+                    error::ParserErrorType::UnexpectedToken(lexer::TokenType::Assign),
                     &tokens[3],
                 ));
             }
@@ -47,12 +50,14 @@ pub fn gen(tokens: &[lexer::Token]) -> Result<block::All, error::Error<error::As
             let ty = r#type::gen(ty)?;
             let exp = expression::gen(rest_tokens)?;
 
-            return Ok(block::All::VariableDeclaration {
-                identifier: variable_name.to_string(),
-                r#type: ty,
-                value: exp,
-                cl_ln: cl_ln::combine(tokens),
-            });
+            return Ok(Node::from_cl_ln(
+                node::block::All::VariableDeclaration {
+                    identifier: variable_name.to_string(),
+                    ty,
+                    value: exp,
+                },
+                &cl_ln::combine(tokens),
+            ));
         }
     }
 

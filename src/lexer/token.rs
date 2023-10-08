@@ -15,6 +15,7 @@ pub enum TokenType {
     Struct,
     Out,
     Namespace,
+    CompilerSetCustomCodePreDefined(String),
 
     Integer,
     Float,
@@ -74,6 +75,16 @@ impl std::fmt::Display for TokenType {
             TokenType::Var => write!(f, "var"),
             TokenType::If => write!(f, "if"),
             TokenType::Else => write!(f, "else"),
+            TokenType::Return => write!(f, "ret"),
+            TokenType::Break => write!(f, "brk"),
+            TokenType::Continue => write!(f, "cnt"),
+            TokenType::While => write!(f, "whl"),
+            TokenType::Struct => write!(f, "str"),
+            TokenType::Out => write!(f, "out"),
+            TokenType::Namespace => write!(f, "ns"),
+            TokenType::CompilerSetCustomCodePreDefined(code) => {
+                write!(f, "CompilerSetCustomCodePreDefined({})", code)
+            }
 
             TokenType::Add => write!(f, "+"),
             TokenType::Sub => write!(f, "-"),
