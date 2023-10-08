@@ -7,6 +7,7 @@ fn calc_type(
     left: &Node<expression::All>,
     right: &Node<expression::All>,
     scope: &static_analyzer::Scope,
+    op: lexer::TokenType,
 ) -> Result<common::Type, Vec<error::Error<error::StaticAnalyzerErrorType>>> {
     let left = evaluate(left, scope);
     let right = evaluate(right, scope);
@@ -19,23 +20,6 @@ fn calc_type(
             .collect());
     }
 
-    if left.is_err() || right.is_err() {
-        let (not_error_type, prev_err) = if left.is_err() {
-            (right.clone().unwrap().node.ty(), left.clone().unwrap_err())
-        } else {
-            (left.clone().unwrap().node.ty(), right.clone().unwrap_err())
-        };
-
-        let err = vec![error::Error::from_cl_ln(
-            error::StaticAnalyzerErrorType::OperationNotSupported(
-                lexer::TokenType::Add,
-                not_error_type,
-            ),
-            &left.unwrap_err().first().unwrap().cl_ln(),
-        )];
-        return Err(prev_err.into_iter().chain(err).collect());
-    }
-
     let left = left?;
     let right = right?;
 
@@ -46,12 +30,8 @@ fn calc_type(
         Ok(left_ty)
     } else {
         Err(vec![error::Error::from_cl_ln(
-            error::StaticAnalyzerErrorType::TypeMismatchOp(
-                lexer::TokenType::Add,
-                left_ty,
-                right_ty,
-            ),
-            &left.cl_ln(),
+            error::StaticAnalyzerErrorType::TypeMismatchOp(op, left_ty, right_ty),
+            &cl_ln::combine(&[left, right]),
         )])
     }
 }
@@ -307,7 +287,7 @@ pub fn evaluate(
         },
         expression::All::Cmp { value, .. } => match value {
             expression::Cmp::Equal { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::Equal)?;
 
                 check_type!(
                     Equal,
@@ -327,7 +307,7 @@ pub fn evaluate(
                 )
             }
             expression::Cmp::NotEqual { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::NotEqual)?;
 
                 check_type!(
                     NotEqual,
@@ -347,7 +327,7 @@ pub fn evaluate(
                 )
             }
             expression::Cmp::LessThan { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::LessThan)?;
 
                 check_type!(
                     LessThan,
@@ -362,7 +342,7 @@ pub fn evaluate(
                 )
             }
             expression::Cmp::LessThanOrEqual { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::LessThanOrEqual)?;
 
                 check_type!(
                     LessThanOrEqual,
@@ -377,7 +357,7 @@ pub fn evaluate(
                 )
             }
             expression::Cmp::GreaterThan { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::GreaterThan)?;
 
                 check_type!(
                     GreaterThan,
@@ -392,7 +372,7 @@ pub fn evaluate(
                 )
             }
             expression::Cmp::GreaterThanOrEqual { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::GreaterThanOrEqual)?;
 
                 check_type!(
                     GreaterThanOrEqual,
@@ -409,7 +389,7 @@ pub fn evaluate(
         },
         expression::All::BooleanLogic { value, .. } => match value {
             expression::BooleanLogic::And { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::And)?;
 
                 check_type!(And, ty, vec![common::Type::Boolean], {
                     let left = evaluate(&left, scope)?;
@@ -419,7 +399,7 @@ pub fn evaluate(
                 })
             }
             expression::BooleanLogic::Or { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::Or)?;
 
                 check_type!(Or, ty, vec![common::Type::Boolean], {
                     let left = evaluate(&left, scope)?;
@@ -452,7 +432,7 @@ pub fn evaluate(
         },
         expression::All::Arithmetic { value, .. } => match value {
             expression::Arithmetic::Add { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::Add)?;
 
                 check_type!(
                     Add,
@@ -471,7 +451,7 @@ pub fn evaluate(
                 )
             }
             expression::Arithmetic::Sub { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::Sub)?;
 
                 check_type!(Sub, ty, vec![common::Type::Integer, common::Type::Float], {
                     let left = evaluate(&left, scope)?;
@@ -481,7 +461,7 @@ pub fn evaluate(
                 })
             }
             expression::Arithmetic::Mul { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::Mul)?;
 
                 check_type!(Mul, ty, vec![common::Type::Integer, common::Type::Float], {
                     let left = evaluate(&left, scope)?;
@@ -491,7 +471,7 @@ pub fn evaluate(
                 })
             }
             expression::Arithmetic::Div { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::Div)?;
 
                 check_type!(Div, ty, vec![common::Type::Integer, common::Type::Float], {
                     let left = evaluate(&left, scope)?;
@@ -501,7 +481,7 @@ pub fn evaluate(
                 })
             }
             expression::Arithmetic::Mod { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::Mod)?;
 
                 check_type!(Mod, ty, vec![common::Type::Integer, common::Type::Float], {
                     let left = evaluate(&left, scope)?;
@@ -511,7 +491,7 @@ pub fn evaluate(
                 })
             }
             expression::Arithmetic::Pow { left, right, .. } => {
-                let ty = calc_type(&left, &right, scope)?;
+                let ty = calc_type(&left, &right, scope, lexer::TokenType::Pow)?;
 
                 check_type!(Pow, ty, vec![common::Type::Integer, common::Type::Float], {
                     let left = evaluate(&left, scope)?;

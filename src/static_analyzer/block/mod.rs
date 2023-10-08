@@ -17,6 +17,14 @@ pub fn check(
                 ty,
                 value,
             } => {
+                if scope.has_variable(identifier) {
+                    errors.push(error::Error::from_cl_ln(
+                        error::StaticAnalyzerErrorType::VariableAlreadyDeclared(identifier.clone()),
+                        &node.cl_ln(),
+                    ));
+                    continue;
+                }
+
                 scope.set_variable(&identifier, ty.clone());
 
                 let exp = expression::evaluate(&value, &scope);

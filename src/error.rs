@@ -13,6 +13,7 @@ pub enum StaticAnalyzerErrorType {
     CannotCallNonFunction,
     FeatureNotImplemented(String),
     CompilerCustomCodePreDefined,
+    VariableAlreadyDeclared(String),
     CannotUseNonIdentifierAsOutArgument,
 }
 
@@ -21,6 +22,9 @@ impl std::fmt::Display for StaticAnalyzerErrorType {
         use StaticAnalyzerErrorType as ET;
 
         match self {
+            ET::VariableAlreadyDeclared(name) => {
+                write!(f, "Variable '{}' is already declared", name)
+            }
             ET::CannotUseNonIdentifierAsOutArgument => {
                 write!(f, "Cannot use non-identifier as out argument")
             }

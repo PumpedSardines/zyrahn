@@ -101,21 +101,10 @@ pub fn compile(node: &Node<expression::AllWithType>) -> String {
                                 let arg_types = arguments
                                     .clone()
                                     .into_iter()
-                                    .map(|(is_out, x)| {
-                                        format!(
-                                            "{}{}",
-                                            if is_out { "out_" } else { "" },
-                                            x.node.ty()
-                                        )
-                                    })
+                                    .map(|(is_out, x)| (is_out, x.node.ty()))
                                     .collect::<Vec<_>>();
 
-                                format!(
-                                    "f{}__0{}__0{}",
-                                    namespace.join("0"),
-                                    arg_types.join("0"),
-                                    identifier
-                                )
+                                get_func_name(namespace, identifier, &arg_types)
                             }
                             _ => unreachable!(),
                         },
@@ -142,7 +131,7 @@ pub fn compile(node: &Node<expression::AllWithType>) -> String {
                                                 },
                                             ..
                                         } => {
-                                            format!("v{}__0{}", namespace.join("0"), identifier)
+                                            get_var_name(namespace, identifier)
                                         }
                                         _ => {
                                             panic!("Static analyzer has given a tree that is not valid")

@@ -15,8 +15,8 @@ pub fn compile(
             } => {
                 code.push_str(
                     format!(
-                        "let v__0{} = {{ value: {} }};",
-                        identifier,
+                        "let {} = {{ value: {} }};",
+                        get_var_name(vec![], &identifier),
                         expression::compile(&value)
                     )
                     .as_str(),
