@@ -1,12 +1,12 @@
 use super::*;
 
 pub fn compile(
-    ast: &Vec<parser::node::block::All<parser::node::expression::AllWithType>>,
+    nodes: &Vec<Node<parser::node::block::All<Node<parser::node::expression::AllWithType>>>>,
 ) -> String {
     let mut code = String::new();
 
-    for block in ast {
-        match block {
+    for node in nodes {
+        match &node.node {
             parser::node::block::All::Expression { value, .. } => {
                 code.push_str(&expression::compile(&value));
             }
@@ -15,7 +15,7 @@ pub fn compile(
             } => {
                 code.push_str(
                     format!(
-                        "let __0{} = {{ value: {} }};",
+                        "let v__0{} = {{ value: {} }};",
                         identifier,
                         expression::compile(&value)
                     )

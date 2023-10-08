@@ -56,7 +56,10 @@ pub fn gen(
 
                     rest.insert(
                         0,
-                        Node::from_cl_ln(node::block::All::Expression { value: expression }, cl_ln),
+                        Node::from_cl_ln(
+                            node::block::All::Expression { value: expression },
+                            &cl_ln,
+                        ),
                     );
 
                     return Ok(rest);

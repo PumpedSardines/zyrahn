@@ -9,7 +9,7 @@ pub struct Scope<'a> {
     variables: HashMap<String, common::Type>,
     // Why is the look up for functions a double vector?
     // First vector is function overloads, second vector is the types of the arguments.
-    functions: HashMap<String, Vec<(Vec<common::Type>, common::Type)>>,
+    functions: HashMap<String, Vec<(Vec<(bool, common::Type)>, common::Type)>>,
 }
 
 impl<'a> Scope<'a> {
@@ -25,7 +25,7 @@ impl<'a> Scope<'a> {
         &self,
         ns: &Vec<String>,
         name: &str,
-        args: &Vec<common::Type>,
+        args: &Vec<(bool, common::Type)>,
     ) -> Option<common::Type> {
         let name_with_ns = Scope::combine_ns_name(ns, name);
 
@@ -53,7 +53,12 @@ impl<'a> Scope<'a> {
             })
     }
 
-    pub fn set_function(&mut self, name: &str, args: Vec<common::Type>, ret_type: common::Type) {
+    pub fn set_function(
+        &mut self,
+        name: &str,
+        args: Vec<(bool, common::Type)>,
+        ret_type: common::Type,
+    ) {
         self.functions
             .entry(name.to_string())
             .or_insert_with(Vec::new)

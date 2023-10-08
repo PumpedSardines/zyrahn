@@ -20,10 +20,19 @@ mod block;
 pub fn evaluate(
     tree: &Vec<Node<parser::node::block::All<Node<parser::node::expression::All>>>>,
 ) -> Result<
-    parser::node::block::All<parser::node::expression::AllWithType>,
+    Vec<Node<parser::node::block::All<Node<parser::node::expression::AllWithType>>>>,
     Vec<error::Error<error::StaticAnalyzerErrorType>>,
 > {
     let mut scope = Scope::new(None);
+    scope.set_function(
+        "std::test",
+        vec![
+            (false, common::Type::Integer),
+            (true, common::Type::Integer),
+        ],
+        common::Type::Boolean,
+    );
+
     let block_eval = block::check(tree, &mut scope);
 
     if let Err(errs) = block_eval {

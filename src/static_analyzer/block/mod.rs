@@ -11,7 +11,7 @@ pub fn check(
     let mut errors = vec![];
 
     for node in tree {
-        match node.node {
+        match &node.node {
             parser::node::block::All::VariableDeclaration {
                 identifier,
                 ty,
@@ -28,9 +28,12 @@ pub fn check(
 
                 let exp_ty = exp.unwrap();
 
-                if exp_ty.node.ty() != ty {
+                if exp_ty.node.ty() != *ty {
                     errors.push(error::Error::from_cl_ln(
-                        error::StaticAnalyzerErrorType::TypeMismatchAssign(ty, exp_ty.node.ty()),
+                        error::StaticAnalyzerErrorType::TypeMismatchAssign(
+                            ty.clone(),
+                            exp_ty.node.ty(),
+                        ),
                         &exp_ty,
                     ));
                 }
@@ -49,13 +52,14 @@ pub fn check(
 
                 if let Err(errs) = exp {
                     errors.extend(errs);
+                } else {
+                    ret_blocks.push(Node::from_cl_ln(
+                        parser::node::block::All::Expression {
+                            value: exp.unwrap(),
+                        },
+                        &value.cl_ln(),
+                    ));
                 }
-                ret_blocks.push(Node::from_cl_ln(
-                    parser::node::block::All::Expression {
-                        value: exp.unwrap(),
-                    },
-                    &value.cl_ln(),
-                ));
             }
             _ => {
                 return Err(vec![error::Error::from_cl_ln(

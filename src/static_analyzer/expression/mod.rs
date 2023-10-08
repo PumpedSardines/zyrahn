@@ -91,7 +91,7 @@ pub fn evaluate(
         };
     }
 
-    match node.node {
+    match &node.node {
         expression::All::CompilerCustomCodePreDefined { .. } => {
             return Err(vec![error::Error::from_cl_ln(
                 error::StaticAnalyzerErrorType::CompilerCustomCodePreDefined,
@@ -103,7 +103,7 @@ pub fn evaluate(
                 expression::Literal::Integer { value } => Ok(Node::from_cl_ln(
                     expression::AllWithType::SingleDataUnit {
                         value: expression::SingleDataUnit::Literal {
-                            literal: expression::Literal::Integer { value },
+                            literal: expression::Literal::Integer { value: *value },
                         },
                         ty: common::Type::Integer,
                     },
@@ -112,7 +112,7 @@ pub fn evaluate(
                 expression::Literal::Float { value } => Ok(Node::from_cl_ln(
                     expression::AllWithType::SingleDataUnit {
                         value: expression::SingleDataUnit::Literal {
-                            literal: expression::Literal::Float { value },
+                            literal: expression::Literal::Float { value: *value },
                         },
                         ty: common::Type::Float,
                     },
@@ -121,7 +121,9 @@ pub fn evaluate(
                 expression::Literal::String { value } => Ok(Node::from_cl_ln(
                     expression::AllWithType::SingleDataUnit {
                         value: expression::SingleDataUnit::Literal {
-                            literal: expression::Literal::String { value },
+                            literal: expression::Literal::String {
+                                value: value.clone(),
+                            },
                         },
                         ty: common::Type::String,
                     },
@@ -130,7 +132,7 @@ pub fn evaluate(
                 expression::Literal::Boolean { value } => Ok(Node::from_cl_ln(
                     expression::AllWithType::SingleDataUnit {
                         value: expression::SingleDataUnit::Literal {
-                            literal: expression::Literal::Boolean { value },
+                            literal: expression::Literal::Boolean { value: *value },
                         },
                         ty: common::Type::Boolean,
                     },
@@ -163,7 +165,31 @@ pub fn evaluate(
                             })
                             .collect::<Result<Vec<(bool, Node<expression::AllWithType>)>, _>>()?;
 
-                        let args_types = args.iter().map(|(_, arg)| arg.node.ty()).collect();
+                        let args_types = args
+                            .iter()
+                            .map(|(is_out, arg)| (*is_out, arg.node.ty()))
+                            .collect();
+
+                        for (is_out, arg) in args.iter() {
+                            if *is_out {
+                                match arg {
+                                    Node {
+                                        node:
+                                            expression::AllWithType::SingleDataUnit {
+                                                value: expression::SingleDataUnit::Identifier { .. },
+                                                ..
+                                            },
+                                        ..
+                                    } => {}
+                                    _ => {
+                                        return Err(vec![error::Error::from_cl_ln(
+                                            error::StaticAnalyzerErrorType::CannotUseNonIdentifierAsOutArgument,
+                                            arg,
+                                        )])
+                                    }
+                                }
+                            }
+                        }
 
                         if let Some(ret_type) =
                             scope.get_function(namespace, identifier, &args_types)

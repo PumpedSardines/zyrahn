@@ -1,7 +1,7 @@
-const STD_LIBRARY: &str = include_str!("./std.zy");
+// const STD_LIBRARY: &str = include_str!("./std.zy");
 
 fn compile(code: &str) -> Result<String, Vec<Box<dyn std::error::Error>>> {
-    let code = format!("{}\n\n{}", code, STD_LIBRARY);
+    // let code = format!("{}\n\n{}", code, STD_LIBRARY);
 
     let tokens = zyrahn::lexer::tokenize(&code);
     if let Err(e) = &tokens {
@@ -15,7 +15,9 @@ fn compile(code: &str) -> Result<String, Vec<Box<dyn std::error::Error>>> {
     }
     let ast = ast.unwrap();
 
-    if let Err(errs) = zyrahn::static_analyzer::check(&ast) {
+    let typed_ast = zyrahn::static_analyzer::evaluate(&ast);
+
+    if let Err(errs) = typed_ast {
         let mut out_errs: Vec<Box<dyn std::error::Error>> = vec![];
         for e in errs {
             out_errs.push(Box::new(e.clone()));
@@ -23,7 +25,7 @@ fn compile(code: &str) -> Result<String, Vec<Box<dyn std::error::Error>>> {
         return Err(out_errs);
     }
 
-    Ok(zyrahn::compiler::javascript::compile(&ast))
+    Ok(zyrahn::compiler::javascript::compile(&typed_ast.unwrap()))
 }
 
 fn main() {

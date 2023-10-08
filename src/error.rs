@@ -9,10 +9,11 @@ pub enum StaticAnalyzerErrorType {
     OperationNotSupported(lexer::TokenType, common::Type),
     VariableNotDefined(String, Vec<String>),
     FunctionNotDefined(String, Vec<String>),
-    FunctionArgumentMismatch(String, Vec<String>, Vec<common::Type>),
+    FunctionArgumentMismatch(String, Vec<String>, Vec<(bool, common::Type)>),
     CannotCallNonFunction,
     FeatureNotImplemented(String),
     CompilerCustomCodePreDefined,
+    CannotUseNonIdentifierAsOutArgument,
 }
 
 impl std::fmt::Display for StaticAnalyzerErrorType {
@@ -20,6 +21,9 @@ impl std::fmt::Display for StaticAnalyzerErrorType {
         use StaticAnalyzerErrorType as ET;
 
         match self {
+            ET::CannotUseNonIdentifierAsOutArgument => {
+                write!(f, "Cannot use non-identifier as out argument")
+            }
             ET::CompilerCustomCodePreDefined => {
                 write!(f, "Compiler set custom code pre-defined error")
             }
@@ -79,7 +83,13 @@ impl std::fmt::Display for StaticAnalyzerErrorType {
                     function_name,
                     function_name,
                     args.iter()
-                        .map(|arg| format!("{}", arg))
+                        .map(|(is_out, arg)| {
+                            if *is_out {
+                                format!("out {}", arg)
+                            } else {
+                                format!("{}", arg)
+                            }
+                        })
                         .collect::<Vec<_>>()
                         .join(", ")
                 )
